@@ -1,0 +1,5 @@
+{
+  "name": "Sari-Sari POS AI",
+  "description": "A Filipino-inspired Sari-Sari Store POS system with offline AI product detection.",
+  "requestFramePermissions": ["camera"]
+}
