@@ -18,7 +18,7 @@ export const SalesSummary: React.FC = () => {
       icon: ShoppingBag,
       color: 'bg-indigo-600',
       shadow: 'shadow-indigo-100',
-      trend: '+12.5%'
+      trend: ''
     },
     {
       title: 'Total Profit',
@@ -26,7 +26,7 @@ export const SalesSummary: React.FC = () => {
       icon: TrendingUp,
       color: 'bg-emerald-600',
       shadow: 'shadow-emerald-100',
-      trend: '+8.3%'
+      trend: ''
     },
     {
       title: 'Transactions',
@@ -34,7 +34,7 @@ export const SalesSummary: React.FC = () => {
       icon: Users,
       color: 'bg-blue-600',
       shadow: 'shadow-blue-100',
-      trend: '+5.2%'
+      trend: ''
     },
     {
       title: 'Average Ticket',

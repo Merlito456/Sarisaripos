@@ -335,13 +335,8 @@ export class ReportDatabase {
     const totalCost = grossRevenue - grossProfit;
     const profitMargin = grossRevenue > 0 ? (grossProfit / grossRevenue) * 100 : 0;
     
-    // Simulated expenses (in a real app, you'd have an expenses table)
-    const expenses = [
-      { category: 'Rent', amount: totalCost * 0.1 },
-      { category: 'Utilities', amount: totalCost * 0.05 },
-      { category: 'Salaries', amount: totalCost * 0.15 },
-      { category: 'Miscellaneous', amount: totalCost * 0.03 }
-    ];
+    // No simulated expenses as per user request for actual data only
+    const expenses: { category: string; amount: number }[] = [];
     
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const netProfit = grossProfit - totalExpenses;

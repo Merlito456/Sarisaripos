@@ -58,3 +58,67 @@
     min-height: 300px;
   }
 }
+
+/* Scanning Animation */
+@keyframes scan {
+  0% {
+    top: 0%;
+  }
+  50% {
+    top: 100%;
+  }
+  100% {
+    top: 0%;
+  }
+}
+
+.animate-scan {
+  animation: scan 2s ease-in-out infinite;
+}
+
+/* Camera Modal Transitions */
+.camera-enter {
+  opacity: 0;
+}
+
+.camera-enter-active {
+  opacity: 1;
+  transition: opacity 300ms ease-in;
+}
+
+.camera-exit {
+  opacity: 1;
+}
+
+.camera-exit-active {
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+}
+
+/* Focus Ring Animation */
+@keyframes focusPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+.scanning-frame {
+  animation: focusPulse 1.5s infinite;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

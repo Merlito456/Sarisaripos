@@ -132,6 +132,9 @@ export const Customers: React.FC = () => {
         isOpen={isReportOpen}
         onClose={() => setIsReportOpen(false)}
       />
+      
+      {/* Bottom Spacer for Mobile Nav */}
+      <div className="h-24 lg:hidden" />
     </div>
   );
 };

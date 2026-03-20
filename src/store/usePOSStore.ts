@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { db, type Product, type Customer, type Transaction, type TransactionItem } from '../database/db';
+import { ReceiptData } from '../types/receipt';
 import toast from 'react-hot-toast';
 
 interface CartItem extends Product {
@@ -11,6 +12,8 @@ interface POSState {
   selectedCustomer: Customer | null;
   discount: number;
   isProcessing: boolean;
+  currentReceipt: ReceiptData | null;
+  showReceipt: boolean;
   
   // Actions
   addToCart: (product: Product, quantity?: number) => void;
@@ -19,6 +22,7 @@ interface POSState {
   setCustomer: (customer: Customer | null) => void;
   applyDiscount: (amount: number) => void;
   clearCart: () => void;
+  clearReceipt: () => void;
   checkout: (paymentMethod: Transaction['paymentMethod'], amountPaid: number) => Promise<void>;
 }
 
@@ -27,6 +31,8 @@ export const usePOSStore = create<POSState>((set, get) => ({
   selectedCustomer: null,
   discount: 0,
   isProcessing: false,
+  currentReceipt: null,
+  showReceipt: false,
 
   addToCart: (product, quantity = 1) => {
     set((state) => {
@@ -69,9 +75,16 @@ export const usePOSStore = create<POSState>((set, get) => ({
 
   clearCart: () => set({ cart: [], selectedCustomer: null, discount: 0 }),
 
+  clearReceipt: () => set({ currentReceipt: null, showReceipt: false }),
+
   checkout: async (paymentMethod, amountPaid) => {
     const { cart, selectedCustomer, discount, clearCart } = get();
     if (cart.length === 0) return;
+
+    if (paymentMethod === 'credit' && !selectedCustomer) {
+      toast.error('Please select a customer for credit (Utang) payments');
+      return;
+    }
 
     set({ isProcessing: true });
 
@@ -79,6 +92,16 @@ export const usePOSStore = create<POSState>((set, get) => ({
       const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
       const finalAmount = totalAmount - discount;
       const change = amountPaid - finalAmount;
+
+      // Check credit limit if applicable
+      if (paymentMethod === 'credit' && selectedCustomer) {
+        const newBalance = selectedCustomer.currentBalance + finalAmount;
+        if (newBalance > selectedCustomer.creditLimit) {
+          toast.error(`Credit limit exceeded! (Limit: ₱${selectedCustomer.creditLimit})`);
+          set({ isProcessing: false });
+          return;
+        }
+      }
 
       const transaction: Transaction = {
         customerId: selectedCustomer?.id,
@@ -110,7 +133,8 @@ export const usePOSStore = create<POSState>((set, get) => ({
         await db.products.update(item.id!, {
           stock: item.stock - item.quantity,
           updatedAt: new Date(),
-        });
+          synced: false,
+        } as any);
 
         await db.stockMovements.add({
           productId: item.id!,
@@ -126,9 +150,38 @@ export const usePOSStore = create<POSState>((set, get) => ({
       if (paymentMethod === 'credit' && selectedCustomer) {
         await db.customers.update(selectedCustomer.id!, {
           currentBalance: selectedCustomer.currentBalance + finalAmount,
-        });
+          synced: false,
+        } as any);
       }
 
+      // Generate Receipt Data
+      const receiptData: ReceiptData = {
+        id: `RCPT-${transactionId}`,
+        storeName: 'Sari-Sari Store',
+        storeAddress: 'Barangay, City, Philippines',
+        storePhone: '09123456789',
+        transaction: {
+          id: transactionId as string,
+          date: new Date(),
+          customerName: selectedCustomer ? `${selectedCustomer.firstName} ${selectedCustomer.lastName}` : undefined,
+          cashierName: 'Store Owner'
+        },
+        items: cart.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price,
+          total: item.price * item.quantity
+        })),
+        subtotal: totalAmount,
+        discount,
+        total: finalAmount,
+        paymentMethod,
+        amountPaid,
+        change: Math.max(0, change),
+        message: 'Thank you for your purchase!'
+      };
+
+      set({ currentReceipt: receiptData, showReceipt: true });
       toast.success('Transaction completed!');
       clearCart();
     } catch (error) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings, Menu, X } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings as SettingsIcon, Menu, X } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -9,11 +9,14 @@ import CameraPOS from './components/POS/CameraPOS';
 import Inventory from './pages/Inventory';
 import { Customers } from './pages/Customers';
 import { Reports } from './pages/Reports';
+import { Settings } from './pages/Settings';
 import { seedDatabase } from './database/db';
+import { useSettingsStore } from './store/useSettingsStore';
 
 function Layout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
+  const { syncStatus } = useSettingsStore();
 
   const navItems = [
     { path: '/', icon: <LayoutDashboard size={20} />, label: 'Home' },
@@ -21,7 +24,7 @@ function Layout({ children }: { children: React.ReactNode }) {
     { path: '/inventory', icon: <Package size={20} />, label: 'Stock' },
     { path: '/customers', icon: <Users size={20} />, label: 'Suki' },
     { path: '/reports', icon: <BarChart3 size={20} />, label: 'Stats' },
-    { path: '/settings', icon: <Settings size={20} />, label: 'Set' },
+    { path: '/settings', icon: <SettingsIcon size={20} />, label: 'Set' },
   ];
 
   return (
@@ -103,8 +106,8 @@ function Layout({ children }: { children: React.ReactNode }) {
             <div className="relative z-10">
               <div className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-1">Store Status</div>
               <div className="text-indigo-900 font-bold flex items-center">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse"></div>
-                Online & Synced
+                <div className={`w-2 h-2 rounded-full mr-2 ${syncStatus.isSyncing ? 'bg-amber-500 animate-spin' : syncStatus.error ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`}></div>
+                {syncStatus.isSyncing ? 'Syncing...' : syncStatus.error ? 'Sync Error' : 'Online & Synced'}
               </div>
             </div>
           </div>
@@ -112,7 +115,7 @@ function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative pt-16 lg:pt-0 pb-20 lg:pb-0">
+      <main className="flex-1 overflow-y-auto relative pt-16 lg:pt-0 pb-28 lg:pb-0">
         <Toaster position="top-right" />
         <div className="h-full">
           {children}
@@ -120,8 +123,8 @@ function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 px-2 py-2 flex items-center justify-around z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-        {navItems.slice(0, 5).map((item) => (
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 px-1 py-2 flex items-center justify-around z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        {navItems.map((item) => (
           <Link
             key={item.path}
             to={item.path}
@@ -156,7 +159,7 @@ export default function App() {
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/customers" element={<Customers />} />
           <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<div className="p-8 text-center text-stone-400">Settings module coming soon...</div>} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </Layout>
     </Router>

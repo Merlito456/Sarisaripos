@@ -12,6 +12,7 @@ export class DetectionManager {
   private videoElement: HTMLVideoElement | null = null;
   private isInitialized: boolean = false;
   private onDetectedCallback?: (result: DetectionResult) => void;
+  private productDetectedCallback?: (product: Product) => void;
   
   constructor() {
     this.cameraService = new CameraService();
@@ -106,6 +107,10 @@ export class DetectionManager {
       this.onDetectedCallback(result);
     }
 
+    if (result.product && this.productDetectedCallback) {
+      this.productDetectedCallback(result.product);
+    }
+
     // Dispatch event for UI
     window.dispatchEvent(new CustomEvent('product-detected', {
       detail: result
@@ -135,6 +140,10 @@ export class DetectionManager {
 
   onDetected(callback: (result: DetectionResult) => void): void {
     this.onDetectedCallback = callback;
+  }
+
+  onProductDetected(callback: (product: Product) => void): void {
+    this.productDetectedCallback = callback;
   }
 }
 

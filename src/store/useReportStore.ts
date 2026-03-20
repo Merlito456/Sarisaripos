@@ -28,9 +28,12 @@ interface ReportState {
   inventoryReport: InventoryReport | null;
   
   // UI states
-  isLoading: boolean;
+  loadingCount: number;
   error: string | null;
   currentFilter: ReportFilter;
+  
+  // Computed
+  isLoading: boolean;
   
   // Actions
   loadSalesData: (startDate: Date, endDate: Date) => Promise<void>;
@@ -58,7 +61,8 @@ export const useReportStore = create<ReportState>((set, get) => ({
   profitAnalysis: null,
   utangAging: null,
   inventoryReport: null,
-  isLoading: false,
+  loadingCount: 0,
+  get isLoading() { return get().loadingCount > 0; },
   error: null,
   currentFilter: {
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // Start of current month
@@ -66,102 +70,162 @@ export const useReportStore = create<ReportState>((set, get) => ({
   },
   
   loadSalesData: async (startDate, endDate) => {
-    set({ isLoading: true, error: null });
+    set(state => ({ loadingCount: state.loadingCount + 1, error: null }));
     try {
       const data = await reportDB.getSalesData(startDate, endDate);
-      set({ salesData: data, isLoading: false });
+      set(state => ({ 
+        salesData: data, 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     } catch (error) {
-      set({ error: 'Failed to load sales data', isLoading: false });
+      set(state => ({ 
+        error: 'Failed to load sales data', 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     }
   },
   
   loadTopProducts: async (startDate, endDate, limit = 10) => {
-    set({ isLoading: true, error: null });
+    set(state => ({ loadingCount: state.loadingCount + 1, error: null }));
     try {
       const data = await reportDB.getTopProducts(startDate, endDate, limit);
-      set({ topProducts: data, isLoading: false });
+      set(state => ({ 
+        topProducts: data, 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     } catch (error) {
-      set({ error: 'Failed to load top products', isLoading: false });
+      set(state => ({ 
+        error: 'Failed to load top products', 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     }
   },
   
   loadCategoryPerformance: async (startDate, endDate) => {
-    set({ isLoading: true, error: null });
+    set(state => ({ loadingCount: state.loadingCount + 1, error: null }));
     try {
       const data = await reportDB.getCategoryPerformance(startDate, endDate);
-      set({ categoryPerformance: data, isLoading: false });
+      set(state => ({ 
+        categoryPerformance: data, 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     } catch (error) {
-      set({ error: 'Failed to load category performance', isLoading: false });
+      set(state => ({ 
+        error: 'Failed to load category performance', 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     }
   },
   
   loadDailyReport: async (date) => {
-    set({ isLoading: true, error: null });
+    set(state => ({ loadingCount: state.loadingCount + 1, error: null }));
     try {
       const data = await reportDB.getDailyReport(date);
-      set({ dailyReport: data, isLoading: false });
+      set(state => ({ 
+        dailyReport: data, 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     } catch (error) {
-      set({ error: 'Failed to load daily report', isLoading: false });
+      set(state => ({ 
+        error: 'Failed to load daily report', 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     }
   },
   
   loadWeeklyReport: async (year, week) => {
-    set({ isLoading: true, error: null });
+    set(state => ({ loadingCount: state.loadingCount + 1, error: null }));
     try {
       const data = await reportDB.getWeeklyReport(year, week);
-      set({ weeklyReport: data, isLoading: false });
+      set(state => ({ 
+        weeklyReport: data, 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     } catch (error) {
-      set({ error: 'Failed to load weekly report', isLoading: false });
+      set(state => ({ 
+        error: 'Failed to load weekly report', 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     }
   },
   
   loadMonthlyReport: async (year, month) => {
-    set({ isLoading: true, error: null });
+    set(state => ({ loadingCount: state.loadingCount + 1, error: null }));
     try {
       const data = await reportDB.getMonthlyReport(year, month);
-      set({ monthlyReport: data, isLoading: false });
+      set(state => ({ 
+        monthlyReport: data, 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     } catch (error) {
-      set({ error: 'Failed to load monthly report', isLoading: false });
+      set(state => ({ 
+        error: 'Failed to load monthly report', 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     }
   },
   
   loadYearlyReport: async (year) => {
-    set({ isLoading: true, error: null });
+    set(state => ({ loadingCount: state.loadingCount + 1, error: null }));
     try {
       const data = await reportDB.getYearlyReport(year);
-      set({ yearlyReport: data, isLoading: false });
+      set(state => ({ 
+        yearlyReport: data, 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     } catch (error) {
-      set({ error: 'Failed to load yearly report', isLoading: false });
+      set(state => ({ 
+        error: 'Failed to load yearly report', 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     }
   },
   
   loadProfitAnalysis: async (startDate, endDate) => {
-    set({ isLoading: true, error: null });
+    set(state => ({ loadingCount: state.loadingCount + 1, error: null }));
     try {
       const data = await reportDB.getProfitAnalysis(startDate, endDate);
-      set({ profitAnalysis: data, isLoading: false });
+      set(state => ({ 
+        profitAnalysis: data, 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     } catch (error) {
-      set({ error: 'Failed to load profit analysis', isLoading: false });
+      set(state => ({ 
+        error: 'Failed to load profit analysis', 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     }
   },
   
   loadUtangAging: async () => {
-    set({ isLoading: true, error: null });
+    set(state => ({ loadingCount: state.loadingCount + 1, error: null }));
     try {
       const data = await reportDB.getUtangAging();
-      set({ utangAging: data, isLoading: false });
+      set(state => ({ 
+        utangAging: data, 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     } catch (error) {
-      set({ error: 'Failed to load utang aging', isLoading: false });
+      set(state => ({ 
+        error: 'Failed to load utang aging', 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     }
   },
   
   loadInventoryReport: async () => {
-    set({ isLoading: true, error: null });
+    set(state => ({ loadingCount: state.loadingCount + 1, error: null }));
     try {
       const data = await reportDB.getInventoryReport();
-      set({ inventoryReport: data, isLoading: false });
+      set(state => ({ 
+        inventoryReport: data, 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     } catch (error) {
-      set({ error: 'Failed to load inventory report', isLoading: false });
+      set(state => ({ 
+        error: 'Failed to load inventory report', 
+        loadingCount: Math.max(0, state.loadingCount - 1) 
+      }));
     }
   },
   

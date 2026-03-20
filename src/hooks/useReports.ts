@@ -90,7 +90,20 @@ export const useReports = () => {
   };
   
   return {
-    ...store,
+    salesData: store.salesData,
+    topProducts: store.topProducts,
+    categoryPerformance: store.categoryPerformance,
+    dailyReport: store.dailyReport,
+    weeklyReport: store.weeklyReport,
+    monthlyReport: store.monthlyReport,
+    yearlyReport: store.yearlyReport,
+    profitAnalysis: store.profitAnalysis,
+    utangAging: store.utangAging,
+    inventoryReport: store.inventoryReport,
+    isLoading: store.isLoading,
+    error: store.error,
+    currentFilter: store.currentFilter,
+    setFilter: store.setFilter,
     activeTab,
     setActiveTab,
     dateRange,

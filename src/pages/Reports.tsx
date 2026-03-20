@@ -35,45 +35,49 @@ export const Reports: React.FC = () => {
   return (
     <div className="p-4 lg:p-6 space-y-6 lg:space-y-8 bg-stone-50 min-h-full">
       {/* Header */}
-      <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end gap-4">
+      <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end gap-6">
         <div>
           <h1 className="text-3xl lg:text-4xl font-black text-stone-900 tracking-tight uppercase leading-none">Reports</h1>
           <p className="text-stone-500 font-medium text-sm lg:text-base">Analyze your business performance</p>
         </div>
         
-        <div className="flex items-center space-x-3">
-          <DateRangePicker />
-          <button
-            onClick={() => loadReports()}
-            className="p-3 bg-white border border-stone-200 rounded-2xl hover:bg-stone-50 transition-all shadow-sm active:scale-95"
-            title="Refresh"
-          >
-            <RefreshCw size={20} className="text-stone-600" />
-          </button>
-          <button
-            onClick={() => exportCurrentReport('csv')}
-            className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl transition-all shadow-lg shadow-emerald-100 font-black uppercase tracking-widest active:scale-95"
-          >
-            <Download size={20} />
-            <span>Export</span>
-          </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <DateRangePicker />
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => loadReports()}
+              className="p-3 bg-white border border-stone-200 rounded-2xl hover:bg-stone-50 transition-all shadow-sm active:scale-95"
+              title="Refresh"
+            >
+              <RefreshCw size={20} className="text-stone-600" />
+            </button>
+            <button
+              onClick={() => exportCurrentReport('csv')}
+              className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl transition-all shadow-lg shadow-emerald-100 font-black uppercase tracking-widest active:scale-95"
+            >
+              <Download size={20} />
+              <span className="hidden sm:inline">Export</span>
+            </button>
+          </div>
         </div>
       </header>
       
       {/* Tabs */}
-      <div className="bg-white rounded-3xl shadow-sm p-2 border border-stone-200 flex space-x-2">
+      <div className="bg-white rounded-3xl shadow-sm p-2 border border-stone-200 flex space-x-2 overflow-x-auto no-scrollbar">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex-1 flex items-center justify-center space-x-2 py-4 rounded-2xl font-black uppercase tracking-widest transition-all ${
+            className={`flex-1 min-w-[80px] sm:min-w-0 flex items-center justify-center space-x-2 py-4 rounded-2xl font-black uppercase tracking-widest transition-all ${
               activeTab === tab.id
                 ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100'
                 : 'text-stone-400 hover:bg-stone-50 hover:text-stone-600'
             }`}
           >
             <tab.icon size={20} />
-            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="hidden md:inline">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -119,6 +123,9 @@ export const Reports: React.FC = () => {
           )}
         </div>
       )}
+      
+      {/* Bottom Spacer for Mobile Nav */}
+      <div className="h-24 lg:hidden" />
     </div>
   );
 };

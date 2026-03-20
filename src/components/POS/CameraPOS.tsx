@@ -1,18 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { Search, ShoppingCart, X, Plus, Minus, Trash2, Camera } from 'lucide-react';
+import { Search, ShoppingCart, X, Plus, Minus, Trash2, Camera, Barcode, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePOSStore } from '../../store/usePOSStore';
 import { db, type Product } from '../../database/db';
-import { CameraDetection } from './CameraDetection';
+import { FullScreenCamera } from './FullScreenCamera';
+import { CustomerSelector } from './CustomerSelector';
+import { ReceiptModal } from './ReceiptModal';
 import toast from 'react-hot-toast';
 
 export default function CameraPOS() {
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraMode, setCameraMode] = useState<'barcode' | 'photo' | 'auto'>('auto');
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
   
-  const { cart, addToCart, updateQuantity, removeFromCart, checkout, isProcessing } = usePOSStore();
+  const { 
+    cart, 
+    addToCart, 
+    updateQuantity, 
+    removeFromCart, 
+    checkout, 
+    isProcessing, 
+    selectedCustomer,
+    currentReceipt,
+    showReceipt,
+    clearReceipt
+  } = usePOSStore();
 
   useEffect(() => {
     db.products.toArray().then(setProducts);
@@ -20,31 +34,59 @@ export default function CameraPOS() {
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
+  const openCamera = (mode: 'barcode' | 'photo' | 'auto') => {
+    setCameraMode(mode);
+    setIsCameraActive(true);
+  };
+
   return (
     <div className="flex flex-col h-full bg-stone-100 lg:flex-row overflow-hidden relative">
       {/* Left Side: Camera & Search */}
       <div className="flex-1 flex flex-col p-4 space-y-4 overflow-hidden">
+        {/* Quick Scan Options */}
+        <div className="grid grid-cols-3 gap-3">
+          <button
+            onClick={() => openCamera('barcode')}
+            className="bg-indigo-600 rounded-2xl p-4 text-white text-left hover:scale-105 transition-transform shadow-lg shadow-indigo-100"
+          >
+            <Barcode size={24} className="mb-2" />
+            <p className="font-black text-xs uppercase tracking-wider">Barcode</p>
+            <p className="text-[10px] opacity-70">Scan items</p>
+          </button>
+          
+          <button
+            onClick={() => openCamera('photo')}
+            className="bg-emerald-600 rounded-2xl p-4 text-white text-left hover:scale-105 transition-transform shadow-lg shadow-emerald-100"
+          >
+            <Camera size={24} className="mb-2" />
+            <p className="font-black text-xs uppercase tracking-wider">AI Vision</p>
+            <p className="text-[10px] opacity-70">Detect Photo</p>
+          </button>
+          
+          <button
+            onClick={() => openCamera('auto')}
+            className="bg-purple-600 rounded-2xl p-4 text-white text-left hover:scale-105 transition-transform shadow-lg shadow-purple-100"
+          >
+            <Zap size={24} className="mb-2" />
+            <p className="font-black text-xs uppercase tracking-wider">Auto</p>
+            <p className="text-[10px] opacity-70">Smart Scan</p>
+          </button>
+        </div>
+
         <div className="relative aspect-[4/3] lg:aspect-video bg-black rounded-2xl overflow-hidden shadow-xl border-4 border-white">
-          {!isCameraActive ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white space-y-4 p-6 text-center">
-              <div className="w-20 h-20 bg-indigo-600/20 rounded-full flex items-center justify-center mb-2">
-                <Camera size={40} className="text-indigo-400" />
-              </div>
-              <h3 className="text-2xl font-black tracking-tight">AI Vision Scanner</h3>
-              <p className="text-stone-400 text-sm max-w-xs">Scan barcodes or use AI to recognize products instantly. Works completely offline.</p>
-              <button 
-                onClick={() => setIsCameraActive(true)}
-                className="px-10 py-4 bg-indigo-600 hover:bg-indigo-700 rounded-2xl font-black text-lg transition-all transform hover:scale-105 shadow-xl shadow-indigo-200"
-              >
-                Open Scanner
-              </button>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-white space-y-4 p-6 text-center">
+            <div className="w-20 h-20 bg-indigo-600/20 rounded-full flex items-center justify-center mb-2">
+              <Camera size={40} className="text-indigo-400" />
             </div>
-          ) : (
-            <CameraDetection 
-              onProductDetected={(product) => addToCart(product)}
-              onClose={() => setIsCameraActive(false)}
-            />
-          )}
+            <h3 className="text-2xl font-black tracking-tight">AI Vision Scanner</h3>
+            <p className="text-stone-400 text-sm max-w-xs">Scan barcodes or use AI to recognize products instantly. Works completely offline.</p>
+            <button 
+              onClick={() => openCamera('auto')}
+              className="px-10 py-4 bg-indigo-600 hover:bg-indigo-700 rounded-2xl font-black text-lg transition-all transform hover:scale-105 shadow-xl shadow-indigo-200"
+            >
+              Open Scanner
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 flex flex-col min-h-0">
@@ -131,6 +173,9 @@ export default function CameraPOS() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="mb-4">
+            <CustomerSelector />
+          </div>
           <AnimatePresence initial={false}>
             {cart.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-stone-400 space-y-4 opacity-50">
@@ -218,6 +263,23 @@ export default function CameraPOS() {
           </div>
         </div>
       </div>
+      
+      {/* Full Screen Camera Modal */}
+      <FullScreenCamera
+        isOpen={isCameraActive}
+        mode={cameraMode}
+        onClose={() => setIsCameraActive(false)}
+        onProductDetected={(product) => addToCart(product)}
+        onModeChange={setCameraMode}
+      />
+
+      {currentReceipt && (
+        <ReceiptModal
+          isOpen={showReceipt}
+          receiptData={currentReceipt}
+          onClose={clearReceipt}
+        />
+      )}
     </div>
   );
 }

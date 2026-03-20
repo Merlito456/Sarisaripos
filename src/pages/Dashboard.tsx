@@ -60,17 +60,28 @@ export default function Dashboard() {
         .toArray();
       setRecentTransactions(recent);
 
-      // Simple mock chart data for the last 7 days
-      const mockChart = [
-        { name: 'Mon', sales: 1200 },
-        { name: 'Tue', sales: 1900 },
-        { name: 'Wed', sales: 1500 },
-        { name: 'Thu', sales: 2100 },
-        { name: 'Fri', sales: 2800 },
-        { name: 'Sat', sales: 3500 },
-        { name: 'Sun', sales: sales },
-      ];
-      setChartData(mockChart);
+      // Real chart data for the last 7 days
+      const chartDataPoints = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        d.setHours(0, 0, 0, 0);
+        
+        const nextD = new Date(d);
+        nextD.setDate(d.getDate() + 1);
+        
+        const dayTransactions = await db.transactions
+          .where('timestamp')
+          .between(d, nextD)
+          .toArray();
+          
+        const daySales = dayTransactions.reduce((sum, t) => sum + t.finalAmount, 0);
+        chartDataPoints.push({
+          name: d.toLocaleDateString('en-PH', { weekday: 'short' }),
+          sales: daySales
+        });
+      }
+      setChartData(chartDataPoints);
     };
 
     loadData();
@@ -188,6 +199,9 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+      
+      {/* Bottom Spacer for Mobile Nav */}
+      <div className="h-24 lg:hidden" />
     </div>
   );
 }

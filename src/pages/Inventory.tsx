@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { db, type Product } from '../database/db';
 import { Search, Plus, Package, Filter, MoreVertical, Edit2, Trash2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { ProductModal } from '../components/inventory/ProductModal';
 
 export default function Inventory() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     loadProducts();
@@ -17,8 +20,32 @@ export default function Inventory() {
     setProducts(allProducts);
   };
 
+  const handleAddProduct = () => {
+    setEditingProduct(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      try {
+        await db.products.delete(id);
+        toast.success('Product deleted successfully');
+        loadProducts();
+      } catch (error) {
+        console.error('Failed to delete product:', error);
+        toast.error('Failed to delete product');
+      }
+    }
+  };
+
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         (p.barcode && p.barcode.includes(searchQuery));
     if (filter === 'low') return matchesSearch && p.stock <= p.minStock;
     return matchesSearch;
   });
@@ -30,10 +57,15 @@ export default function Inventory() {
           <h1 className="text-3xl font-black text-stone-900 uppercase tracking-tight">Inventory Management</h1>
           <p className="text-stone-500 font-medium">Track and manage your store products.</p>
         </div>
-        <button className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all transform active:scale-95">
-          <Plus size={20} />
-          <span>Add New Product</span>
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button 
+            onClick={handleAddProduct}
+            className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all transform active:scale-95"
+          >
+            <Plus size={20} />
+            <span>Add New Product</span>
+          </button>
+        </div>
       </header>
 
       {/* Filters & Search */}
@@ -120,10 +152,16 @@ export default function Inventory() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors">
+                      <button 
+                        onClick={() => handleEditProduct(product)}
+                        className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors"
+                      >
                         <Edit2 size={18} />
                       </button>
-                      <button className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors">
+                      <button 
+                        onClick={() => handleDeleteProduct(product.id!)}
+                        className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors"
+                      >
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -149,8 +187,18 @@ export default function Inventory() {
                   </div>
                 </div>
                 <div className="flex space-x-1">
-                  <button className="p-2 bg-stone-50 text-stone-400 rounded-xl"><Edit2 size={16} /></button>
-                  <button className="p-2 bg-stone-50 text-red-400 rounded-xl"><Trash2 size={16} /></button>
+                  <button 
+                    onClick={() => handleEditProduct(product)}
+                    className="p-2 bg-stone-50 text-stone-400 rounded-xl"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteProduct(product.id!)}
+                    className="p-2 bg-stone-50 text-red-400 rounded-xl"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
               
@@ -161,13 +209,13 @@ export default function Inventory() {
                 </div>
                 <div className="bg-stone-50 p-2 rounded-xl text-center">
                   <div className="text-[10px] font-black text-stone-400 uppercase tracking-tighter">Stock</div>
-                  <div className={`font-black ${product.stock <= product.minStock ? 'text-ph-red' : 'text-stone-900'}`}>
+                  <div className={`font-black ${product.stock <= product.minStock ? 'text-red-500' : 'text-stone-900'}`}>
                     {product.stock}
                   </div>
                 </div>
                 <div className="bg-stone-50 p-2 rounded-xl text-center">
                   <div className="text-[10px] font-black text-stone-400 uppercase tracking-tighter">Status</div>
-                  <div className={`text-[10px] font-black uppercase ${product.stock <= product.minStock ? 'text-ph-red' : 'text-jeepney-green'}`}>
+                  <div className={`text-[10px] font-black uppercase ${product.stock <= product.minStock ? 'text-red-500' : 'text-emerald-600'}`}>
                     {product.stock <= product.minStock ? 'Low' : 'OK'}
                   </div>
                 </div>
@@ -182,6 +230,16 @@ export default function Inventory() {
           </div>
         )}
       </div>
+
+      <ProductModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={loadProducts}
+        product={editingProduct}
+      />
+      
+      {/* Bottom Spacer for Mobile Nav */}
+      <div className="h-24 lg:hidden" />
     </div>
   );
 }
