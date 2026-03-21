@@ -138,14 +138,19 @@ class PremiumService {
         body: JSON.stringify({ planId })
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create payment link');
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('The server did not return a valid JSON response. Please check if your backend is running.');
       }
       
-      const { checkoutUrl } = await response.json();
-      if (!checkoutUrl) throw new Error('No checkout URL returned from server');
-      return checkoutUrl;
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create payment link');
+      }
+      
+      if (!data.checkoutUrl) throw new Error('No checkout URL returned from server');
+      return data.checkoutUrl;
     } catch (error: any) {
       console.error('PayMongo link error:', error);
       throw error;
