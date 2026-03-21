@@ -3,7 +3,6 @@ import { Check, Crown, Star, TrendingUp, Cloud, Database, Users, BarChart, Smart
 import { PREMIUM_PLANS } from '../config/premiumPlans';
 import { premiumService } from '../services/PremiumService';
 import { PremiumStatus, PlanType } from '../types/premium';
-import { loadStripe } from '@stripe/stripe-js';
 import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 
@@ -27,32 +26,15 @@ export const Premium: React.FC = () => {
     setLoading(false);
   };
   
-  const handleSubscribe = async () => {
-    if (selectedPlan === 'free') return;
-    
-    try {
-      // Create checkout session with Stripe
-      const sessionId = await premiumService.createCheckoutSession(selectedPlan, billingInterval);
-      const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
-      if (!stripe) throw new Error('Stripe failed to load');
-      
-      const { error } = await (stripe as any).redirectToCheckout({ sessionId });
-      if (error) throw error;
-    } catch (error) {
-      console.error('Checkout error:', error);
-      toast.error('Failed to start checkout. Please try again.');
-    }
-  };
-  
   const handlePayMongo = async () => {
     if (selectedPlan === 'free') return;
     
     try {
       const checkoutUrl = await premiumService.createPayMongoLink(selectedPlan);
       window.location.href = checkoutUrl;
-    } catch (error) {
+    } catch (error: any) {
       console.error('PayMongo error:', error);
-      toast.error('Failed to create payment link');
+      toast.error(error.message || 'Failed to create payment link');
     }
   };
   
@@ -212,7 +194,7 @@ export const Premium: React.FC = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleSubscribe();
+                      handlePayMongo();
                     }}
                     disabled={isCurrentPlan(planId)}
                     className={`mt-10 w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all transform active:scale-95 ${
@@ -222,17 +204,6 @@ export const Premium: React.FC = () => {
                     }`}
                   >
                     {isCurrentPlan(planId) ? 'Current Plan' : `Get ${plan.name}`}
-                  </button>
-                  
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePayMongo();
-                    }}
-                    disabled={isCurrentPlan(planId)}
-                    className="mt-3 w-full py-3 bg-stone-50 hover:bg-stone-100 text-stone-600 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
-                  >
-                    Pay with GCash/Maya
                   </button>
                 </div>
               </div>

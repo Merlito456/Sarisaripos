@@ -34,13 +34,20 @@ class PremiumService {
             autoRenew: data.auto_renew,
             paymentMethod: data.payment_method,
             lastPaymentDate: data.last_payment_date ? new Date(data.last_payment_date) : undefined,
-            nextPaymentDate: data.next_payment_date ? new Date(data.next_payment_date) : undefined
+            nextPaymentDate: data.next_payment_date ? new Date(data.next_payment_date) : undefined,
+            dailyTransactionLimit: data.daily_transaction_limit
           };
         }
       }
       
       const planId: PlanType = subscription?.planId || 'free';
       const plan = PREMIUM_PLANS[planId];
+      
+      // Use limits from DB if available, otherwise fallback to hardcoded config
+      const limits = {
+        ...plan.limits,
+        transactionsPerDay: subscription?.dailyTransactionLimit || plan.limits.transactionsPerDay
+      };
       
       // Get current usage counts
       const usage = await this.getCurrentUsage();
@@ -49,7 +56,7 @@ class PremiumService {
         isPremium: planId !== 'free',
         plan: planId,
         features: plan.features,
-        limits: plan.limits,
+        limits,
         usage,
         subscription
       };
@@ -123,27 +130,26 @@ class PremiumService {
     return status.isPremium;
   }
   
-  async createCheckoutSession(planId: PlanType, interval: 'month' | 'year'): Promise<string> {
-    // Integrate with Stripe or PayMongo
-    // This would call your backend endpoint that creates a Stripe Checkout session
-    const response = await fetch('/api/create-checkout-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ planId, interval })
-    });
-    const { sessionId } = await response.json();
-    return sessionId;
-  }
-  
   async createPayMongoLink(planId: PlanType): Promise<string> {
-    // PayMongo integration for Philippine payments
-    const response = await fetch('/api/create-paymongo-link', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ planId })
-    });
-    const { checkoutUrl } = await response.json();
-    return checkoutUrl;
+    try {
+      const response = await fetch('/api/create-paymongo-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create payment link');
+      }
+      
+      const { checkoutUrl } = await response.json();
+      if (!checkoutUrl) throw new Error('No checkout URL returned from server');
+      return checkoutUrl;
+    } catch (error: any) {
+      console.error('PayMongo link error:', error);
+      throw error;
+    }
   }
 }
 

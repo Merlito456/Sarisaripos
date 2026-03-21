@@ -3,7 +3,6 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
-import Stripe from 'stripe';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -35,6 +34,11 @@ async function startServer() {
       return res.status(400).json({ error: 'Invalid plan' });
     }
 
+    const paymongoKey = process.env.PAYMONGO_SECRET_KEY;
+    if (!paymongoKey || paymongoKey.includes('YOUR_PAYMONGO_SECRET_KEY')) {
+      return res.status(500).json({ error: 'PayMongo secret key is not configured in environment variables.' });
+    }
+
     try {
       const origin = req.headers.origin || process.env.APP_URL || `http://localhost:${PORT}`;
       const options = {
@@ -43,7 +47,7 @@ async function startServer() {
         headers: {
           accept: 'application/json',
           'Content-Type': 'application/json',
-          authorization: `Basic ${Buffer.from(process.env.PAYMONGO_SECRET_KEY + ':').toString('base64')}`
+          authorization: `Basic ${Buffer.from(paymongoKey + ':').toString('base64')}`
         },
         data: {
           data: {
@@ -72,54 +76,9 @@ async function startServer() {
       const response = await axios.request(options);
       res.json({ checkoutUrl: response.data.data.attributes.checkout_url });
     } catch (error: any) {
-      console.error('PayMongo Error:', error.response?.data || error.message);
-      res.status(500).json({ error: 'Failed to create PayMongo link' });
-    }
-  });
-
-  // Stripe API Endpoint
-  app.post('/api/create-checkout-session', async (req, res) => {
-    const { planId, interval } = req.body;
-    const plan = PREMIUM_PLANS[planId as keyof typeof PREMIUM_PLANS];
-
-    if (!plan) {
-      return res.status(400).json({ error: 'Invalid plan' });
-    }
-
-    const amount = interval === 'month' ? plan.priceMonthly : plan.priceYearly;
-
-    try {
-      const origin = req.headers.origin || process.env.APP_URL || `http://localhost:${PORT}`;
-      const stripeKey = process.env.STRIPE_SECRET_KEY;
-      if (!stripeKey) {
-        throw new Error('STRIPE_SECRET_KEY is not configured');
-      }
-      const stripe = new Stripe(stripeKey);
-
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'php',
-              product_data: {
-                name: `Sari-Sari POS ${plan.name} (${interval === 'month' ? 'Monthly' : 'Yearly'})`,
-                description: `Unlock premium features for your Sari-Sari store`,
-              },
-              unit_amount: amount * 100,
-            },
-            quantity: 1,
-          },
-        ],
-        mode: 'payment',
-        success_url: `${origin}/premium?success=true&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${origin}/premium?canceled=true`,
-      });
-
-      res.json({ sessionId: session.id });
-    } catch (error: any) {
-      console.error('Stripe Error:', error.message);
-      res.status(500).json({ error: 'Failed to create Stripe session' });
+      const errorMessage = error.response?.data?.errors?.[0]?.detail || error.message;
+      console.error('PayMongo Error:', errorMessage);
+      res.status(500).json({ error: `PayMongo Error: ${errorMessage}` });
     }
   });
 

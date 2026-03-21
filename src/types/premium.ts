@@ -33,6 +33,7 @@ export interface Subscription {
   paymentMethod?: 'stripe' | 'paymongo' | 'manual';
   lastPaymentDate?: Date;
   nextPaymentDate?: Date;
+  dailyTransactionLimit?: number;
 }
 
 export interface PremiumStatus {
