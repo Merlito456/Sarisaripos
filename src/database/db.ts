@@ -4,14 +4,19 @@ import { VisualFeatures } from '../types/detection';
 
 export interface Product {
   id?: string;
+  userId?: string; // Added for multi-user support
   name: string;
   barcode?: string;
   barcodes?: string[]; // Multiple barcodes for same product
   category: string;
   price: number;
   cost: number;
+  minPrice?: number;
+  maxPrice?: number;
   stock: number;
   minStock: number;
+  unitId?: string; // Reference to productUnits
+  masterProductId?: string; // Reference to masterProducts
   image?: string;
   visualFeatures?: VisualFeatures;
   timesDetected?: number;
@@ -19,6 +24,22 @@ export interface Product {
   createdAt: Date;
   updatedAt: Date;
   synced?: boolean;
+}
+
+export interface ProductUnit {
+  id: string;
+  masterProductId: string;
+  unitName: string; // e.g., 'stick', 'pack', 'piece', 'sachet'
+  unitType: 'retail' | 'wholesale';
+  quantity: number; // how many base units per this selling unit
+  barcode?: string;
+  sellingPrice: number;
+  costPrice: number;
+  stockQuantity: number;
+  isDefault: boolean;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Category {
@@ -89,6 +110,8 @@ export interface MasterProduct {
   description?: string;
   suggested_retail_price?: number;
   suggested_cost_price?: number;
+  min_price?: number;
+  max_price?: number;
   manufacturer?: string;
   distributor?: string;
   country_of_origin?: string;
@@ -107,17 +130,19 @@ export class SariSariDB extends Dexie {
   transactionItems!: Table<TransactionItem>;
   stockMovements!: Table<StockMovement>;
   masterProducts!: Table<MasterProduct>;
+  productUnits!: Table<ProductUnit>;
 
   constructor() {
     super('SariSariDB');
-    this.version(4).stores({
-      products: '++id, name, barcode, *barcodes, category, synced',
+    this.version(5).stores({
+      products: '++id, name, barcode, *barcodes, category, synced, unitId, masterProductId',
       categories: '++id, name',
       customers: '++id, firstName, lastName, phone, synced',
       transactions: '++id, customerId, timestamp, synced',
       transactionItems: '++id, transactionId, productId',
       stockMovements: '++id, productId, timestamp',
-      masterProducts: 'id, gtin, product_name, brand'
+      masterProducts: 'id, gtin, product_name, brand',
+      productUnits: 'id, masterProductId, barcode, isDefault, isActive'
     });
   }
 }

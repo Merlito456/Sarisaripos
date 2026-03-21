@@ -1,12 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, Camera, Barcode, Zap, RefreshCw, AlertCircle, Check } from 'lucide-react';
 import { detectionManager } from '../../detection/DetectionManager';
-import { Product } from '../../database/db';
+import { Product, MasterProduct, ProductUnit } from '../../database/db';
+import { masterProductService } from '../../services/MasterProductService';
+import { UnitSelector } from './UnitSelector';
 import { toast } from 'react-hot-toast';
 
 interface FullScreenCameraProps {
   isOpen: boolean;
   mode: 'barcode' | 'photo' | 'auto';
+  userId: string;
   onClose: () => void;
   onProductDetected: (product: Product) => void;
   onModeChange?: (mode: 'barcode' | 'photo' | 'auto') => void;
@@ -15,6 +18,7 @@ interface FullScreenCameraProps {
 export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
   isOpen,
   mode,
+  userId,
   onClose,
   onProductDetected,
   onModeChange
@@ -26,6 +30,12 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
   const [isDetecting, setIsDetecting] = useState(false);
   const [lastDetectedBarcode, setLastDetectedBarcode] = useState<string>('');
   const [detectionHistory, setDetectionHistory] = useState<Product[]>([]);
+  
+  // Unit selection state
+  const [isUnitSelectorOpen, setIsUnitSelectorOpen] = useState(false);
+  const [selectedMasterProduct, setSelectedMasterProduct] = useState<MasterProduct | null>(null);
+  const [availableUnits, setAvailableUnits] = useState<ProductUnit[]>([]);
+  const [currentBarcode, setCurrentBarcode] = useState<string>('');
   
   // Initialize camera when modal opens
   useEffect(() => {
@@ -66,12 +76,12 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
       await detectionManager.initialize(videoRef.current);
       detectionManager.setMode(mode);
       
-      // Setup detection callback for barcode mode
-      if (mode === 'barcode' || mode === 'auto') {
-        detectionManager.onProductDetected((product) => {
-          handleProductDetected(product);
-        });
-      }
+      // Setup detection callback
+      detectionManager.onDetected((result) => {
+        if (result.product) {
+          handleProductDetected(result);
+        }
+      });
       
       setStatus('ready');
       toast.success('Camera ready!');
@@ -92,7 +102,24 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
     detectionManager.stopCamera();
   };
   
-  const handleProductDetected = (product: Product) => {
+  const handleProductDetected = (result: any) => {
+    const { product, masterProduct, availableUnits, barcode } = result;
+    if (!product) return;
+
+    // If it's a virtual product (not in inventory yet) and we have units to select
+    if (!product.id && masterProduct && availableUnits && availableUnits.length > 0) {
+      setSelectedMasterProduct(masterProduct);
+      setAvailableUnits(availableUnits);
+      setCurrentBarcode(barcode || '');
+      setIsUnitSelectorOpen(true);
+      return;
+    }
+
+    // Normal detection (already in inventory)
+    processDetectedProduct(product);
+  };
+
+  const processDetectedProduct = (product: Product) => {
     // Add to detection history
     setDetectionHistory(prev => {
       const exists = prev.find(p => p.id === product.id);
@@ -117,6 +144,28 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
       onProductDetected(product);
       onClose();
     }, 500);
+  };
+
+  const handleUnitSelect = async (unit: ProductUnit) => {
+    if (!selectedMasterProduct) return;
+
+    try {
+      // Add to inventory
+      const newProduct = await masterProductService.addToInventory(
+        selectedMasterProduct.id,
+        userId,
+        unit.id,
+        unit.sellingPrice
+      );
+
+      if (newProduct) {
+        setIsUnitSelectorOpen(false);
+        processDetectedProduct(newProduct);
+      }
+    } catch (error) {
+      console.error('Failed to add unit to inventory:', error);
+      toast.error('Failed to add product to inventory');
+    }
   };
   
   const captureAndDetect = async () => {
@@ -381,6 +430,20 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
             <span className="text-gray-900 font-bold">Analyzing product...</span>
           </div>
         </div>
+      )}
+
+      {/* Unit Selection Dialog */}
+      {selectedMasterProduct && (
+        <UnitSelector
+          isOpen={isUnitSelectorOpen}
+          product={selectedMasterProduct}
+          units={availableUnits}
+          onSelect={handleUnitSelect}
+          onClose={() => {
+            setIsUnitSelectorOpen(false);
+            setSelectedMasterProduct(null);
+          }}
+        />
       )}
     </div>
   );

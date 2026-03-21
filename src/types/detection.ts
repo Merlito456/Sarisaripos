@@ -1,4 +1,4 @@
-import { Product } from '../database/db';
+import { Product, ProductUnit, MasterProduct } from '../database/db';
 
 // Detection modes
 export type DetectionMode = 'barcode' | 'photo' | 'auto';
@@ -11,6 +11,8 @@ export interface DetectionResult {
   barcode?: string;
   confidence: number;
   multipleMatches?: Product[];
+  availableUnits?: ProductUnit[];
+  masterProduct?: MasterProduct;
   imageData?: string; // Base64 of captured image for training
 }
 

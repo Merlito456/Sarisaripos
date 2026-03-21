@@ -40,15 +40,18 @@ export const usePOSStore = create<POSState>((set, get) => ({
 
   addToCart: (product, quantity = 1) => {
     const { settings } = useSettingsStore.getState();
+    const { cart } = get();
     
-    // If inventory tracking is enabled, skip stock check
-    if (settings.inventory.inventoryEnabled && product.stock < quantity) {
+    const existingItem = cart.find((item) => item.id === product.id);
+    const totalQuantity = (existingItem?.quantity || 0) + quantity;
+
+    // If inventory tracking is enabled, check stock
+    if (settings.inventory.inventoryEnabled && product.stock < totalQuantity) {
       toast.error(`Insufficient stock. Only ${product.stock} left.`);
       return;
     }
 
     set((state) => {
-      const existingItem = state.cart.find((item) => item.id === product.id);
       if (existingItem) {
         return {
           cart: state.cart.map((item) =>
@@ -74,6 +77,17 @@ export const usePOSStore = create<POSState>((set, get) => ({
       get().removeFromCart(productId);
       return;
     }
+
+    const { cart } = get();
+    const item = cart.find(i => i.id === productId);
+    if (!item) return;
+
+    const { settings } = useSettingsStore.getState();
+    if (settings.inventory.inventoryEnabled && item.stock < quantity) {
+      toast.error(`Insufficient stock. Only ${item.stock} left.`);
+      return;
+    }
+
     set((state) => ({
       cart: state.cart.map((item) =>
         item.id === productId ? { ...item, quantity } : item

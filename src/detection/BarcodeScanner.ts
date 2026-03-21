@@ -1,5 +1,5 @@
 import { BrowserMultiFormatReader, Result } from '@zxing/library';
-import { Product, db } from '../database/db';
+import { Product, MasterProduct, ProductUnit, db } from '../database/db';
 import { masterProductService } from '../services/MasterProductService';
 import { premiumService } from '../services/PremiumService';
 
@@ -7,7 +7,7 @@ export class BarcodeScanner {
   private codeReader: BrowserMultiFormatReader;
   private isScanning: boolean = false;
   private videoElement: HTMLVideoElement | null = null;
-  private onDetectedCallback?: (product: Product, barcode: string) => void;
+  private onDetectedCallback?: (product: Product, barcode: string, masterProduct?: MasterProduct, units?: ProductUnit[]) => void;
   private onErrorCallback?: (error: Error) => void;
   private userId?: string;
   
@@ -72,18 +72,42 @@ export class BarcodeScanner {
     
     // Step 3: Premium user - lookup in master database
     try {
-      const masterProduct = await masterProductService.lookupByBarcode(cleanedBarcode);
+      const result = await masterProductService.lookupByBarcode(cleanedBarcode);
       
-      if (masterProduct) {
-        // Add to inventory and then to cart
-        const newProduct = await masterProductService.addToInventory(
-          masterProduct.id,
-          this.userId || 'anonymous',
-          masterProduct.suggested_retail_price
-        );
+      if (result) {
+        const { masterProduct, matchedUnit, units } = result;
         
-        if (newProduct) {
-          this.onDetectedCallback(newProduct, cleanedBarcode);
+        // If it's a direct unit match, we can add it directly
+        if (matchedUnit && matchedUnit.barcode === cleanedBarcode) {
+          const newProduct = await masterProductService.addToInventory(
+            masterProduct.id,
+            this.userId || 'anonymous',
+            matchedUnit.id,
+            matchedUnit.sellingPrice
+          );
+          
+          if (newProduct) {
+            this.onDetectedCallback(newProduct, cleanedBarcode, masterProduct, units);
+            this.playBeep();
+          }
+        } else {
+          // It's a master product match (GTIN), let the UI handle unit selection
+          // We pass a "virtual" product that isn't in inventory yet
+          const virtualProduct: Product = {
+            name: masterProduct.product_name,
+            price: masterProduct.suggested_retail_price || 0,
+            cost: masterProduct.suggested_cost_price || 0,
+            stock: 0,
+            minStock: 0,
+            category: masterProduct.subcategory || 'General',
+            barcode: cleanedBarcode,
+            masterProductId: masterProduct.id,
+            userId: this.userId || 'anonymous',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          
+          this.onDetectedCallback(virtualProduct, cleanedBarcode, masterProduct, units);
           this.playBeep();
         }
       } else {
@@ -137,7 +161,7 @@ export class BarcodeScanner {
     }
   }
   
-  onDetected(callback: (product: Product, barcode: string) => void): void {
+  onDetected(callback: (product: Product, barcode: string, masterProduct?: MasterProduct, units?: ProductUnit[]) => void): void {
     this.onDetectedCallback = callback;
   }
   

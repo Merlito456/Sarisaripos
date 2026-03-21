@@ -23,12 +23,14 @@ export class DetectionManager {
   }
   
   private setupCallbacks(): void {
-    this.barcodeScanner.onDetected((product, barcode) => {
+    this.barcodeScanner.onDetected((product, barcode, masterProduct, units) => {
       this.handleDetection({
         type: 'barcode',
         productId: product.id!,
         product,
         barcode,
+        masterProduct,
+        availableUnits: units,
         confidence: 1.0
       });
     });

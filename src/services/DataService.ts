@@ -14,7 +14,7 @@ class DataService {
       const supabase = getSupabase();
       const { data, error } = await supabase.from('products').select('*');
       if (error) throw error;
-      return data.map(this.mapSupabaseProduct);
+      return data.map(this.mapSupabaseProduct.bind(this));
     }
     return db.products.toArray();
   }
@@ -35,7 +35,9 @@ class DataService {
         cost: product.cost,
         stock: product.stock,
         min_stock: product.minStock,
-        image: product.image
+        image: product.image,
+        unit_id: product.unitId,
+        master_product_id: product.masterProductId
       }).select().single();
       
       if (error) throw error;
@@ -57,13 +59,31 @@ class DataService {
         cost: product.cost,
         stock: product.stock,
         min_stock: product.minStock,
-        image: product.image
+        image: product.image,
+        unit_id: product.unitId,
+        master_product_id: product.masterProductId
       }).eq('id', id);
       
       if (error) throw error;
+      
+      // If we are updating stock and there's a unitId, we should also update the unit stock
+      if (product.stock !== undefined && product.unitId) {
+        await supabase.from('product_units').update({
+          stock_quantity: product.stock
+        }).eq('id', product.unitId);
+      }
+      
       return;
     }
+    
     await db.products.update(id, product);
+    
+    // Local update for unit stock
+    if (product.stock !== undefined && product.unitId) {
+      await db.productUnits.update(product.unitId, {
+        stockQuantity: product.stock
+      });
+    }
   }
 
   async deleteProduct(id: string): Promise<void> {
@@ -267,6 +287,8 @@ class DataService {
       stock: p.stock,
       minStock: p.min_stock,
       image: p.image,
+      unitId: p.unit_id,
+      masterProductId: p.master_product_id,
       createdAt: new Date(p.created_at),
       updatedAt: new Date(p.updated_at)
     };
