@@ -28,10 +28,11 @@ export interface StoreSettings {
   
   // Inventory Settings
   inventory: {
+    inventoryEnabled: boolean;
     lowStockThreshold: number;
     enableExpiryTracking: boolean;
     autoReorder: boolean;
-    defaultUnitType: 'piece' | 'sachet' | 'bottle' | 'can' | 'pack';
+    defaultUnitType: string;
     enableTingiMode: boolean;
   };
   

@@ -1,293 +1,150 @@
 // src/services/MasterProductService.ts
 
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase';
-import { db, Product } from '../database/db';
-import { premiumService } from './PremiumService';
+import { db, MasterProduct } from '../database/db';
+import { toast } from 'react-hot-toast';
 
-export interface MasterProduct {
-  id: string;
-  gtin: string;
-  brand: string;
-  product_name: string;
-  variant: string | null;
-  size: string | null;
-  category: string;
-  suggested_retail_price: number;
-  suggested_cost_price: number;
-  manufacturer: string;
-  image_url: string | null;
-}
+export class MasterProductService {
+  private isDownloading: boolean = false;
 
-export interface ScanResult {
-  found: boolean;
-  fromMaster?: boolean;
-  masterProduct?: MasterProduct;
-  existingProduct?: Product;
-  message: string;
-}
+  // Search for a product by barcode (GTIN)
+  async findByBarcode(barcode: string): Promise<MasterProduct | null> {
+    // 1. Check local master database first
+    const localProduct = await db.masterProducts.where('gtin').equals(barcode).first();
+    if (localProduct) return localProduct;
 
-class MasterProductService {
-  
-  // Lookup product by barcode from master database
+    // 2. If not found locally and online, check Supabase
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = getSupabase();
+        const { data, error } = await supabase
+          .from('master_products')
+          .select('*')
+          .eq('gtin', barcode)
+          .eq('is_active', true)
+          .single();
+
+        if (error) {
+          if (error.code !== 'PGRST116') { // PGRST116 is "no rows found"
+            console.error('Supabase master product search error:', error);
+          }
+          return null;
+        }
+
+        if (data) {
+          // Cache it locally for future use
+          await db.masterProducts.put(data);
+          return data;
+        }
+      } catch (error) {
+        console.error('Failed to search master product online:', error);
+      }
+    }
+
+    return null;
+  }
+
+  // Alias for findByBarcode to match BarcodeScanner expectation
   async lookupByBarcode(barcode: string): Promise<MasterProduct | null> {
-    if (!isSupabaseConfigured()) {
-      console.log('Supabase not configured - master lookup unavailable');
-      return null;
-    }
-    
-    try {
-      const supabase = getSupabase();
-      
-      // First lookup via barcode index
-      const { data: barcodeData, error: barcodeError } = await supabase
-        .from('barcode_index')
-        .select('product_id')
-        .eq('barcode', barcode)
-        .single();
-      
-      if (barcodeError || !barcodeData) return null;
-      
-      // Then get product details
-      const { data: product, error: productError } = await supabase
-        .from('master_products')
-        .select(`
-          id,
-          gtin,
-          brand,
-          product_name,
-          variant,
-          size,
-          suggested_retail_price,
-          suggested_cost_price,
-          manufacturer,
-          image_url,
-          product_categories (name)
-        `)
-        .eq('id', barcodeData.product_id)
-        .single();
-      
-      if (productError) return null;
-      
-      return {
-        id: product.id,
-        gtin: product.gtin,
-        brand: product.brand,
-        product_name: product.product_name,
-        variant: product.variant,
-        size: product.size,
-        category: (product.product_categories as any)?.name || 'General',
-        suggested_retail_price: product.suggested_retail_price,
-        suggested_cost_price: product.suggested_cost_price,
-        manufacturer: product.manufacturer,
-        image_url: product.image_url
-      };
-      
-    } catch (error) {
-      console.error('Master lookup failed:', error);
-      return null;
-    }
+    return this.findByBarcode(barcode);
   }
-  
-  // Search master products (for manual addition)
-  async searchProducts(query: string, limit: number = 20): Promise<MasterProduct[]> {
-    if (!isSupabaseConfigured()) return [];
-    
-    try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from('master_products')
-        .select(`
-          id,
-          gtin,
-          brand,
-          product_name,
-          variant,
-          size,
-          suggested_retail_price,
-          product_categories (name)
-        `)
-        .or(`product_name.ilike.%${query}%,brand.ilike.%${query}%,gtin.ilike.%${query}%`)
-        .limit(limit);
-      
-      if (error) return [];
-      
-      return data.map(item => ({
-        id: item.id,
-        gtin: item.gtin,
-        brand: item.brand,
-        product_name: item.product_name,
-        variant: item.variant,
-        size: item.size,
-        category: (item.product_categories as any)?.name || 'General',
-        suggested_retail_price: item.suggested_retail_price,
-        suggested_cost_price: 0,
-        manufacturer: '',
-        image_url: null
-      }));
-      
-    } catch (error) {
-      console.error('Search failed:', error);
-      return [];
+
+  // Add a master product to the user's local inventory
+  async addToInventory(masterProductId: string, userId: string, price?: number): Promise<any> {
+    const masterProduct = await db.masterProducts.get(masterProductId);
+    if (!masterProduct) {
+      throw new Error('Master product not found locally');
     }
-  }
-  
-  // Add product to user's local inventory from master
-  async addToInventory(
-    masterProductId: string,
-    userId?: string,
-    customPrice?: number,
-    customCost?: number
-  ): Promise<Product | null> {
-    let effectiveUserId = userId;
-    
-    if (!effectiveUserId && isSupabaseConfigured()) {
-      const { data: { user } } = await getSupabase().auth.getUser();
-      effectiveUserId = user?.id;
-    }
-    
-    if (!effectiveUserId) {
-      throw new Error('User not authenticated');
-    }
-    
-    const status = await premiumService.getPremiumStatus(effectiveUserId);
-    
-    // Free users can't use master list
-    if (!status.isPremium) {
-      throw new Error('Premium feature: Upgrade to use barcode scanning');
-    }
-    
-    try {
-      const supabase = getSupabase();
-      
-      // Get master product details
-      const { data: master, error: masterError } = await supabase
-        .from('master_products')
-        .select('*, product_categories(name)')
-        .eq('id', masterProductId)
-        .single();
-      
-      if (masterError) throw masterError;
-      
-      // Check if already in user's inventory in Supabase
-      const { data: existing } = await supabase
-        .from('user_products')
-        .select('*')
-        .eq('user_id', effectiveUserId)
-        .eq('master_product_id', masterProductId)
-        .single();
-      
-      if (existing) {
-        // Update existing product with increased stock
-        await supabase
-          .from('user_products')
-          .update({
-            stock_quantity: existing.stock_quantity + 1,
-            last_synced: new Date()
-          })
-          .eq('id', existing.id);
-      } else {
-        // Add new product to user inventory in Supabase
-        await supabase
-          .from('user_products')
-          .insert({
-            user_id: effectiveUserId,
-            master_product_id: masterProductId,
-            custom_retail_price: customPrice || master.suggested_retail_price,
-            custom_cost_price: customCost || master.suggested_cost_price,
-            stock_quantity: 1,
-            last_synced: new Date()
-          });
-      }
-      
-      // Sync to local IndexedDB
-      return await this.syncToLocal(master, effectiveUserId, customPrice, customCost);
-      
-    } catch (error) {
-      console.error('Failed to add to inventory:', error);
-      throw error;
-    }
-  }
-  
-  // Sync master product to local IndexedDB
-  private async syncToLocal(
-    master: any,
-    userId: string,
-    customPrice?: number,
-    customCost?: number
-  ): Promise<Product> {
-    const localProduct: Product = {
-      name: `${master.brand} ${master.product_name}${master.variant ? ` ${master.variant}` : ''}`,
-      category: master.product_categories?.name || 'General',
-      barcode: master.gtin,
-      barcodes: [master.gtin],
-      price: customPrice || master.suggested_retail_price,
-      cost: customCost || master.suggested_cost_price,
-      stock: 1,
-      minStock: 10,
-      image: master.image_url,
-      timesDetected: 0,
-      synced: true,
+
+    const newProduct = {
+      name: masterProduct.product_name + (masterProduct.variant ? ` - ${masterProduct.variant}` : '') + (masterProduct.size ? ` (${masterProduct.size})` : ''),
+      barcode: masterProduct.gtin,
+      barcodes: [masterProduct.gtin],
+      category: masterProduct.subcategory || 'General',
+      price: price || masterProduct.suggested_retail_price || 0,
+      cost: masterProduct.suggested_cost_price || 0,
+      stock: 0,
+      minStock: 5,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      synced: false
     };
-    
-    // Check if product already exists locally by barcode
-    const existingLocal = await db.products.where('barcode').equals(master.gtin).first();
-    
-    if (existingLocal && existingLocal.id) {
-      await db.products.update(existingLocal.id, {
-        stock: existingLocal.stock + 1,
-        updatedAt: new Date(),
-        synced: true
-      });
-      return { ...existingLocal, stock: existingLocal.stock + 1 };
-    } else {
-      const id = await db.products.add(localProduct);
-      return { ...localProduct, id: id.toString() };
-    }
+
+    const id = await db.products.add(newProduct);
+    return { ...newProduct, id };
   }
-  
-  // Sync all user products from Supabase to local
-  async syncAllUserProducts(userId?: string): Promise<void> {
-    if (!isSupabaseConfigured()) return;
-    
+
+  // Download the entire master database for offline use
+  async downloadMasterDatabase(): Promise<{ success: boolean; count: number; error?: string }> {
+    if (!isSupabaseConfigured()) {
+      return { success: false, count: 0, error: 'Supabase not configured' };
+    }
+
+    if (this.isDownloading) {
+      return { success: false, count: 0, error: 'Download already in progress' };
+    }
+
+    this.isDownloading = true;
+    let totalDownloaded = 0;
+
     try {
       const supabase = getSupabase();
-      let effectiveUserId = userId;
+      
+      // We'll download in batches to avoid memory issues
+      const batchSize = 1000;
+      let lastId = '';
+      let hasMore = true;
 
-      if (!effectiveUserId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        effectiveUserId = user?.id;
+      toast.loading('Downloading master product database...', { id: 'master-download' });
+
+      while (hasMore) {
+        let query = supabase
+          .from('master_products')
+          .select('*')
+          .eq('is_active', true)
+          .order('id')
+          .limit(batchSize);
+
+        if (lastId) {
+          query = query.gt('id', lastId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          hasMore = false;
+        } else {
+          await db.masterProducts.bulkPut(data);
+          totalDownloaded += data.length;
+          lastId = data[data.length - 1].id;
+          
+          if (data.length < batchSize) {
+            hasMore = false;
+          }
+        }
       }
 
-      if (!effectiveUserId) return;
-      
-      const { data, error } = await supabase
-        .from('user_products')
-        .select(`
-          *,
-          master_products (*, product_categories(name))
-        `)
-        .eq('user_id', effectiveUserId)
-        .eq('is_active', true);
-      
-      if (error) throw error;
-      
-      for (const item of data) {
-        const master = item.master_products;
-        await this.syncToLocal(
-          master,
-          userId,
-          item.custom_retail_price,
-          item.custom_cost_price
-        );
-      }
-      
-      console.log(`Synced ${data.length} products to local`);
-      
-    } catch (error) {
-      console.error('Sync failed:', error);
+      toast.success(`Downloaded ${totalDownloaded} products for offline use`, { id: 'master-download' });
+      return { success: true, count: totalDownloaded };
+    } catch (error: any) {
+      console.error('Failed to download master database:', error);
+      toast.error('Failed to download master database: ' + error.message, { id: 'master-download' });
+      return { success: false, count: totalDownloaded, error: error.message };
+    } finally {
+      this.isDownloading = false;
     }
+  }
+
+  // Get total count of local master products
+  async getLocalCount(): Promise<number> {
+    return await db.masterProducts.count();
+  }
+
+  // Clear local master database
+  async clearLocalDatabase(): Promise<void> {
+    await db.masterProducts.clear();
   }
 }
 

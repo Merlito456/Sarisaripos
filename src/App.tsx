@@ -175,6 +175,14 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
 function AppContent() {
   const { user, isLoading, signOut } = useAuth();
 
+  useEffect(() => {
+    if (user) {
+      import('./detection/DetectionManager').then(({ detectionManager }) => {
+        detectionManager.setUserId(user.id);
+      });
+    }
+  }, [user]);
+
   if (isLoading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-stone-100">
@@ -196,6 +204,11 @@ function AppContent() {
       </>
     );
   }
+
+  // Set user ID for detection manager
+  import('./detection/DetectionManager').then(({ detectionManager }) => {
+    detectionManager.setUserId(user.id);
+  });
 
   return (
     <Layout onLogout={signOut}>

@@ -77,6 +77,28 @@ export interface StockMovement {
   timestamp: Date;
 }
 
+export interface MasterProduct {
+  id: string;
+  gtin: string;
+  brand?: string;
+  product_name: string;
+  variant?: string;
+  size?: string;
+  category_id?: string;
+  subcategory?: string;
+  description?: string;
+  suggested_retail_price?: number;
+  suggested_cost_price?: number;
+  manufacturer?: string;
+  distributor?: string;
+  country_of_origin?: string;
+  is_imported?: boolean;
+  image_url?: string;
+  is_active?: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export class SariSariDB extends Dexie {
   products!: Table<Product>;
   categories!: Table<Category>;
@@ -84,16 +106,18 @@ export class SariSariDB extends Dexie {
   transactions!: Table<Transaction>;
   transactionItems!: Table<TransactionItem>;
   stockMovements!: Table<StockMovement>;
+  masterProducts!: Table<MasterProduct>;
 
   constructor() {
     super('SariSariDB');
-    this.version(3).stores({
+    this.version(4).stores({
       products: '++id, name, barcode, *barcodes, category, synced',
       categories: '++id, name',
       customers: '++id, firstName, lastName, phone, synced',
       transactions: '++id, customerId, timestamp, synced',
       transactionItems: '++id, transactionId, productId',
-      stockMovements: '++id, productId, timestamp'
+      stockMovements: '++id, productId, timestamp',
+      masterProducts: 'id, gtin, product_name, brand'
     });
   }
 }

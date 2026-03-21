@@ -13,6 +13,12 @@ export interface SyncResult {
   timestamp: Date;
 }
 
+export interface SettingsSyncResult {
+  success: boolean;
+  error: string | null;
+  timestamp: Date;
+}
+
 export class SupabaseSyncService {
   private isSyncing: boolean = false;
   
@@ -161,6 +167,37 @@ export class SupabaseSyncService {
     }
     
     return result;
+  }
+  
+  // Sync settings to cloud
+  async syncSettings(settings: any): Promise<SettingsSyncResult> {
+    if (!this.isConfigured()) {
+      return { success: false, error: 'Supabase not configured', timestamp: new Date() };
+    }
+
+    try {
+      const supabase = getSupabase();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        return { success: false, error: 'User not authenticated', timestamp: new Date() };
+      }
+
+      const { error } = await supabase
+        .from('user_profiles')
+        .upsert({
+          id: user.id,
+          inventory_enabled: settings.inventory.inventoryEnabled,
+          updated_at: new Date()
+        });
+
+      if (error) throw error;
+
+      return { success: true, error: null, timestamp: new Date() };
+    } catch (error: any) {
+      console.error('Settings sync failed:', error);
+      return { success: false, error: error.message, timestamp: new Date() };
+    }
   }
   
   // Pull updates from cloud

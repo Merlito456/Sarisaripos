@@ -16,6 +16,8 @@ import { PremiumStatus } from '../types/premium';
 
 type TabType = 'store' | 'receipt' | 'inventory' | 'pos' | 'preferences' | 'backup' | 'security' | 'premium';
 
+import { masterProductService } from '../services/MasterProductService';
+
 export const Settings: React.FC = () => {
   const { settings, updateSettings, syncStatus, syncNow, exportSettings, importSettings, testSupabaseConnection } = useSettingsStore();
   const [activeTab, setActiveTab] = useState<TabType>('store');
@@ -24,10 +26,22 @@ export const Settings: React.FC = () => {
   const [supabaseKey, setSupabaseKey] = useState(settings.backup.supabaseConfig?.anonKey || '');
   const [testingConnection, setTestingConnection] = useState(false);
   const [premiumStatus, setPremiumStatus] = React.useState<PremiumStatus | null>(null);
+  const [masterCount, setMasterCount] = useState(0);
+  const [isDownloadingMaster, setIsDownloadingMaster] = useState(false);
 
   React.useEffect(() => {
     premiumService.getPremiumStatus().then(setPremiumStatus);
+    masterProductService.getLocalCount().then(setMasterCount);
   }, []);
+
+  const handleDownloadMaster = async () => {
+    setIsDownloadingMaster(true);
+    const result = await masterProductService.downloadMasterDatabase();
+    if (result.success) {
+      setMasterCount(result.count);
+    }
+    setIsDownloadingMaster(false);
+  };
   
   const tabs = [
     { id: 'store', label: 'Store Info', icon: Store },
@@ -326,6 +340,42 @@ export const Settings: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Master Product Database */}
+                <div className="bg-amber-50 rounded-3xl p-6 border border-amber-100 space-y-6">
+                  <div className="flex items-center space-x-3 text-amber-900">
+                    <Database size={24} />
+                    <h3 className="text-lg font-black uppercase tracking-tight">Master Product Database</h3>
+                  </div>
+                  <p className="text-sm text-amber-600 font-medium">
+                    Download our master database of thousands of products. This allows the barcode scanner to recognize products instantly even when offline.
+                  </p>
+                  
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <button
+                      onClick={handleDownloadMaster}
+                      disabled={isDownloadingMaster || !settings.backup.supabaseConfig?.url}
+                      className="w-full sm:w-auto px-6 py-4 bg-amber-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center space-x-2 shadow-lg shadow-amber-100"
+                    >
+                      {isDownloadingMaster ? <RefreshCw size={18} className="animate-spin" /> : <Download size={18} />}
+                      <span>{isDownloadingMaster ? 'Downloading...' : 'Download Database'}</span>
+                    </button>
+                    
+                    <div className="text-amber-700 font-bold text-sm">
+                      {masterCount > 0 ? (
+                        <div className="flex items-center">
+                          <CheckCircle size={18} className="mr-2 text-emerald-500" />
+                          {masterCount.toLocaleString()} products available offline
+                        </div>
+                      ) : (
+                        <div className="flex items-center text-amber-500">
+                          <AlertCircle size={18} className="mr-2" />
+                          Not downloaded yet
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 
                 {/* Sync Actions */}
                 <div className="space-y-4">
@@ -390,6 +440,20 @@ export const Settings: React.FC = () => {
               <div className="space-y-8">
                 <h2 className="text-xl font-black text-stone-900 uppercase tracking-tight">Inventory Settings</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-center justify-between p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                    <div className="space-y-0.5">
+                      <label className="text-sm font-black text-indigo-900 uppercase tracking-tight">Enable Inventory Tracking</label>
+                      <p className="text-[10px] text-indigo-400 font-medium uppercase tracking-tight">Track stock quantities per product</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={settings.inventory.inventoryEnabled}
+                      onChange={(e) => updateSettings({
+                        inventory: { ...settings.inventory, inventoryEnabled: e.target.checked }
+                      })}
+                      className="w-6 h-6 text-indigo-600 rounded-xl border-none focus:ring-0"
+                    />
+                  </div>
                   <div className="space-y-2">
                     <label className="text-xs font-black text-stone-400 uppercase tracking-widest">Low Stock Threshold</label>
                     <input

@@ -5,6 +5,8 @@ import { ReceiptData } from '../types/receipt';
 import toast from 'react-hot-toast';
 import { premiumService } from '../services/PremiumService';
 
+import { useSettingsStore } from './useSettingsStore';
+
 interface CartItem extends Product {
   quantity: number;
 }
@@ -37,6 +39,14 @@ export const usePOSStore = create<POSState>((set, get) => ({
   showReceipt: false,
 
   addToCart: (product, quantity = 1) => {
+    const { settings } = useSettingsStore.getState();
+    
+    // If inventory tracking is enabled, skip stock check
+    if (settings.inventory.inventoryEnabled && product.stock < quantity) {
+      toast.error(`Insufficient stock. Only ${product.stock} left.`);
+      return;
+    }
+
     set((state) => {
       const existingItem = state.cart.find((item) => item.id === product.id);
       if (existingItem) {
@@ -134,12 +144,15 @@ export const usePOSStore = create<POSState>((set, get) => ({
 
       const transactionId = await dataService.addTransaction(transaction);
 
-      // Update stock
-      for (const item of cart) {
-        await dataService.updateProduct(item.id!, {
-          stock: item.stock - item.quantity,
-          updatedAt: new Date(),
-        });
+      // Update stock if inventory is enabled
+      const { settings } = useSettingsStore.getState();
+      if (settings.inventory.inventoryEnabled) {
+        for (const item of cart) {
+          await dataService.updateProduct(item.id!, {
+            stock: item.stock - item.quantity,
+            updatedAt: new Date(),
+          });
+        }
       }
 
       // Update customer balance if credit (Note: DataService should handle this ideally, but for now we do it here if it's local)

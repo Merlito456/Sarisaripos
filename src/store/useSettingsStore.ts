@@ -42,6 +42,7 @@ const defaultSettings: StoreSettings = {
     }
   },
   inventory: {
+    inventoryEnabled: true,
     lowStockThreshold: 10,
     enableExpiryTracking: false,
     autoReorder: false,
@@ -95,15 +96,22 @@ export const useSettingsStore = create<SettingsState>()(
       isLoading: false,
       
       updateSettings: (updates) => {
-        set((state) => ({
-          settings: { ...state.settings, ...updates }
-        }));
-        
-        // Re-initialize Supabase if credentials changed
-        const newBackup = updates.backup;
-        if (newBackup?.supabaseConfig?.url && newBackup?.supabaseConfig?.anonKey) {
-          initSupabase(newBackup.supabaseConfig.url, newBackup.supabaseConfig.anonKey);
-        }
+        set((state) => {
+          const newSettings = { ...state.settings, ...updates };
+          
+          // Re-initialize Supabase if credentials changed
+          const newBackup = updates.backup;
+          if (newBackup?.supabaseConfig?.url && newBackup?.supabaseConfig?.anonKey) {
+            initSupabase(newBackup.supabaseConfig.url, newBackup.supabaseConfig.anonKey);
+          }
+
+          // Sync settings to cloud if configured
+          if (supabaseSync.isConfigured()) {
+            supabaseSync.syncSettings(newSettings);
+          }
+
+          return { settings: newSettings };
+        });
       },
       
       resetSettings: () => {

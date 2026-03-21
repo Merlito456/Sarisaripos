@@ -6,7 +6,11 @@ import toast from 'react-hot-toast';
 import { ProductModal } from '../components/inventory/ProductModal';
 import { premiumService } from '../services/PremiumService';
 
+import { useSettingsStore } from '../store/useSettingsStore';
+import { RestockSuggestions } from '../components/inventory/RestockSuggestions';
+
 export default function Inventory() {
+  const { settings } = useSettingsStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all');
@@ -83,6 +87,34 @@ export default function Inventory() {
     if (filter === 'low') return matchesSearch && p.stock <= p.minStock;
     return matchesSearch;
   });
+
+  if (!settings.inventory.inventoryEnabled) {
+    return (
+      <div className="p-6 space-y-6 bg-stone-50 min-h-full">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-stone-900 uppercase tracking-tight">Inventory Tracking</h1>
+            <p className="text-stone-500 font-medium">Stock counting is currently disabled in settings.</p>
+          </div>
+        </header>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 flex items-start shadow-sm">
+          <AlertCircle className="w-6 h-6 text-amber-600 mr-4 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-black text-amber-900 uppercase tracking-tight">Inventory tracking is disabled</p>
+            <p className="text-sm text-amber-700 mt-1 font-medium leading-relaxed">
+              You are currently not tracking stock quantities. This is useful for stores that don't want to count every item.
+              We'll still record your sales and provide smart restock suggestions below based on your sales velocity.
+            </p>
+          </div>
+        </div>
+
+        <RestockSuggestions />
+        
+        <div className="h-24 lg:hidden" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 bg-stone-50 min-h-full">
