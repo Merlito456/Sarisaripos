@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Search, ShoppingCart, X, Plus, Minus, Trash2, Camera, Barcode, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePOSStore } from '../../store/usePOSStore';
-import { db, type Product } from '../../database/db';
+import { type Product } from '../../database/db';
+import { dataService } from '../../services/DataService';
 import { FullScreenCamera } from './FullScreenCamera';
 import { CustomerSelector } from './CustomerSelector';
 import { ReceiptModal } from './ReceiptModal';
@@ -29,7 +30,10 @@ export default function CameraPOS() {
   } = usePOSStore();
 
   useEffect(() => {
-    db.products.toArray().then(setProducts);
+    dataService.getProducts().then(setProducts).catch(err => {
+      console.error('Failed to load products:', err);
+      toast.error('Failed to load products');
+    });
   }, []);
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { db, type Product } from '../database/db';
-import { Search, Plus, Package, Filter, MoreVertical, Edit2, Trash2, AlertCircle } from 'lucide-react';
+import { type Product } from '../database/db';
+import { dataService } from '../services/DataService';
+import { Search, Plus, Package, Filter, MoreVertical, Edit2, Trash2, AlertCircle, CloudUpload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ProductModal } from '../components/inventory/ProductModal';
+import { premiumService } from '../services/PremiumService';
 
 export default function Inventory() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -10,14 +12,46 @@ export default function Inventory() {
   const [filter, setFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
+  const [isBackingUp, setIsBackingUp] = useState(false);
 
   useEffect(() => {
     loadProducts();
+    checkPremium();
   }, []);
 
+  const checkPremium = async () => {
+    const status = await premiumService.getPremiumStatus();
+    setIsPremium(status.isPremium);
+  };
+
   const loadProducts = async () => {
-    const allProducts = await db.products.toArray();
-    setProducts(allProducts);
+    try {
+      const allProducts = await dataService.getProducts();
+      setProducts(allProducts);
+    } catch (error) {
+      console.error('Failed to load products:', error);
+      toast.error('Failed to load products');
+    }
+  };
+
+  const handleBackup = async () => {
+    if (!isPremium) {
+      toast.error('Premium plan required for cloud backup');
+      return;
+    }
+    
+    setIsBackingUp(true);
+    try {
+      await dataService.backupToCloud();
+      toast.success('Local data backed up to cloud successfully');
+      loadProducts();
+    } catch (error) {
+      console.error('Backup failed:', error);
+      toast.error('Backup failed');
+    } finally {
+      setIsBackingUp(false);
+    }
   };
 
   const handleAddProduct = () => {
@@ -33,7 +67,7 @@ export default function Inventory() {
   const handleDeleteProduct = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await db.products.delete(id);
+        await dataService.deleteProduct(id);
         toast.success('Product deleted successfully');
         loadProducts();
       } catch (error) {
@@ -58,6 +92,16 @@ export default function Inventory() {
           <p className="text-stone-500 font-medium">Track and manage your store products.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {isPremium && (
+            <button 
+              onClick={handleBackup}
+              disabled={isBackingUp}
+              className="flex items-center justify-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg hover:bg-emerald-700 transition-all transform active:scale-95 disabled:opacity-50"
+            >
+              <CloudUpload size={20} className={isBackingUp ? 'animate-bounce' : ''} />
+              <span>{isBackingUp ? 'Backing up...' : 'Backup to Cloud'}</span>
+            </button>
+          )}
           <button 
             onClick={handleAddProduct}
             className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all transform active:scale-95"

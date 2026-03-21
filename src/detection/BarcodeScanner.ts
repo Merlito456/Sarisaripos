@@ -1,5 +1,7 @@
 import { BrowserMultiFormatReader, Result } from '@zxing/library';
 import { Product, db } from '../database/db';
+import { masterProductService } from '../services/MasterProductService';
+import { premiumService } from '../services/PremiumService';
 
 export class BarcodeScanner {
   private codeReader: BrowserMultiFormatReader;
@@ -7,6 +9,7 @@ export class BarcodeScanner {
   private videoElement: HTMLVideoElement | null = null;
   private onDetectedCallback?: (product: Product, barcode: string) => void;
   private onErrorCallback?: (error: Error) => void;
+  private userId?: string;
   
   constructor() {
     this.codeReader = new BrowserMultiFormatReader();
@@ -46,13 +49,49 @@ export class BarcodeScanner {
     if (!this.onDetectedCallback) return;
     
     const cleanedBarcode = barcode.trim();
+    
+    // Step 1: Check user's local inventory first
     const product = await this.findProductByBarcode(cleanedBarcode);
     
     if (product) {
       this.onDetectedCallback(product, cleanedBarcode);
       this.playBeep();
-    } else {
-      this.onErrorCallback?.(new Error(`Product not found for barcode: ${cleanedBarcode}`));
+      return;
+    }
+
+    // Step 2: Check if user is premium
+    const isPremium = await premiumService.isUserPremium(this.userId);
+    
+    if (!isPremium) {
+      // Free user - show upgrade prompt
+      this.onErrorCallback?.(new Error(
+        'Premium feature: Upgrade to add products from barcode scanning'
+      ));
+      return;
+    }
+    
+    // Step 3: Premium user - lookup in master database
+    try {
+      const masterProduct = await masterProductService.lookupByBarcode(cleanedBarcode);
+      
+      if (masterProduct) {
+        // Add to inventory and then to cart
+        const newProduct = await masterProductService.addToInventory(
+          masterProduct.id,
+          this.userId || 'anonymous',
+          masterProduct.suggested_retail_price
+        );
+        
+        if (newProduct) {
+          this.onDetectedCallback(newProduct, cleanedBarcode);
+          this.playBeep();
+        }
+      } else {
+        this.onErrorCallback?.(new Error(`Product not found in master database: ${cleanedBarcode}`));
+      }
+    } catch (error) {
+      console.error('Master lookup error:', error);
+      this.onErrorCallback?.(error instanceof Error ? error : new Error('Master lookup failed'));
     }
   }
   
@@ -104,5 +143,9 @@ export class BarcodeScanner {
   
   onError(callback: (error: Error) => void): void {
     this.onErrorCallback = callback;
+  }
+
+  setUserId(userId: string): void {
+    this.userId = userId;
   }
 }

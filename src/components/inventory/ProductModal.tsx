@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Package, Tag, DollarSign, Layers, AlertCircle } from 'lucide-react';
-import { db, type Product } from '../../database/db';
+import { X, Save, Package, Tag, DollarSign, Layers, AlertCircle, Crown, Search, Plus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { type Product } from '../../database/db';
+import { dataService } from '../../services/DataService';
 import toast from 'react-hot-toast';
+import { premiumService } from '../../services/PremiumService';
+import { useNavigate } from 'react-router-dom';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -16,6 +20,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   onSave,
   product
 }) => {
+  const navigate = useNavigate();
+  const [masterQuery, setMasterQuery] = useState('');
+  const [masterResults, setMasterResults] = useState<any[]>([]);
+  const [isSearchingMaster, setIsSearchingMaster] = useState(false);
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
     category: 'General',
@@ -40,7 +48,38 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         barcodes: []
       });
     }
+    setMasterQuery('');
+    setMasterResults([]);
   }, [product, isOpen]);
+
+  const handleMasterSearch = async (query: string) => {
+    setMasterQuery(query);
+    if (query.length < 3) {
+      setMasterResults([]);
+      return;
+    }
+
+    setIsSearchingMaster(true);
+    try {
+      const results = await dataService.searchMasterProducts(query);
+      setMasterResults(results);
+    } finally {
+      setIsSearchingMaster(false);
+    }
+  };
+
+  const selectMasterProduct = (p: any) => {
+    setFormData({
+      ...formData,
+      name: p.name,
+      barcode: p.barcode,
+      barcodes: [p.barcode],
+      category: p.category || 'General',
+      price: p.suggested_price || 0
+    });
+    setMasterResults([]);
+    setMasterQuery('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +90,16 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     }
 
     try {
+      if (!product?.id) {
+        const canAdd = await premiumService.canAddProduct();
+        if (!canAdd) {
+          toast.error('Product limit reached for your plan. Please upgrade to add more.');
+          navigate('/premium');
+          onClose();
+          return;
+        }
+      }
+
       const now = new Date();
       const productData = {
         ...formData,
@@ -59,10 +108,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({
       } as Product;
 
       if (product?.id) {
-        await db.products.put(productData);
+        await dataService.updateProduct(product.id, productData);
         toast.success('Product updated successfully');
       } else {
-        await db.products.add(productData);
+        await dataService.addProduct(productData);
         toast.success('Product added successfully');
       }
       
@@ -86,6 +135,58 @@ export const ProductModal: React.FC<ProductModalProps> = ({
           <button onClick={onClose} className="p-2 hover:bg-stone-200 rounded-xl transition-colors">
             <X size={20} className="text-stone-500" />
           </button>
+        </div>
+
+        <div className="px-6 pt-4">
+          {!product && (
+            <div className="relative">
+              <div className="flex items-center space-x-2 mb-2">
+                <Crown size={14} className="text-amber-500" />
+                <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Master List Search</span>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
+                <input
+                  type="text"
+                  className="w-full pl-12 pr-4 py-3 bg-amber-50 rounded-2xl border-2 border-amber-100 focus:border-amber-500 focus:ring-0 font-bold text-sm"
+                  placeholder="Search common items (e.g. Coke, Lucky Me)..."
+                  value={masterQuery}
+                  onChange={e => handleMasterSearch(e.target.value)}
+                />
+                {isSearchingMaster && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
+              
+              <AnimatePresence>
+                {masterResults.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute z-10 left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-stone-100 overflow-hidden max-h-60 overflow-y-auto"
+                  >
+                    {masterResults.map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => selectMasterProduct(p)}
+                        className="w-full p-4 text-left hover:bg-amber-50 border-b border-stone-50 last:border-none flex items-center justify-between group"
+                      >
+                        <div>
+                          <div className="font-bold text-stone-800 group-hover:text-amber-700">{p.name}</div>
+                          <div className="text-xs text-stone-400">{p.barcode} • {p.category}</div>
+                        </div>
+                        <Plus size={18} className="text-amber-500 opacity-0 group-hover:opacity-100" />
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">

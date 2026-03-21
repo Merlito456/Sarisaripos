@@ -145,6 +145,10 @@ export class DetectionManager {
   onProductDetected(callback: (product: Product) => void): void {
     this.productDetectedCallback = callback;
   }
+
+  setUserId(userId: string): void {
+    this.barcodeScanner.setUserId(userId);
+  }
 }
 
 export const detectionManager = new DetectionManager();

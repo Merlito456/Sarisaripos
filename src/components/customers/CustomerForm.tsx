@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { useCustomer } from '../../hooks/useCustomer';
+import { premiumService } from '../../services/PremiumService';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 interface CustomerFormProps {
   isOpen: boolean;
@@ -13,6 +16,7 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
   onClose,
   editCustomer
 }) => {
+  const navigate = useNavigate();
   const { addCustomer, updateCustomer } = useCustomer();
   const [formData, setFormData] = useState({
     firstName: editCustomer?.firstName || '',
@@ -29,6 +33,13 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
     if (editCustomer) {
       await updateCustomer(editCustomer.id, formData);
     } else {
+      const canAdd = await premiumService.canAddCustomer();
+      if (!canAdd) {
+        toast.error('Customer limit reached for your plan. Please upgrade to add more.');
+        navigate('/premium');
+        onClose();
+        return;
+      }
       await addCustomer(formData);
     }
     

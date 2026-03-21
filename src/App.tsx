@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings as SettingsIcon, Menu, X } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings as SettingsIcon, Menu, X, Crown, LogOut } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -10,10 +10,14 @@ import Inventory from './pages/Inventory';
 import { Customers } from './pages/Customers';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
+import { Premium } from './pages/Premium';
+import Auth from './pages/Auth';
 import { seedDatabase } from './database/db';
 import { useSettingsStore } from './store/useSettingsStore';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
-function Layout({ children }: { children: React.ReactNode }) {
+function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: () => void }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
   const { syncStatus } = useSettingsStore();
@@ -96,9 +100,24 @@ function Layout({ children }: { children: React.ReactNode }) {
               <span className="tracking-tight">{item.label}</span>
             </Link>
           ))}
+
+          <Link
+            to="/premium"
+            onClick={() => setIsSidebarOpen(false)}
+            className={`flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold transition-all group mt-4 ${
+              location.pathname === '/premium'
+                ? 'bg-amber-500 text-white shadow-xl shadow-amber-100'
+                : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
+            }`}
+          >
+            <span className={`${location.pathname === '/premium' ? 'text-white' : 'text-amber-500'}`}>
+              <Crown size={20} />
+            </span>
+            <span className="tracking-tight">Upgrade to Pro</span>
+          </Link>
         </nav>
 
-        <div className="p-6 mt-auto">
+        <div className="p-6 mt-auto space-y-4">
           <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100 relative overflow-hidden group">
             <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
               <ShoppingCart size={80} />
@@ -111,6 +130,14 @@ function Layout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           </div>
+
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold text-stone-400 hover:bg-red-50 hover:text-red-600 transition-all group"
+          >
+            <LogOut size={20} className="group-hover:text-red-500" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </aside>
 
@@ -145,6 +172,48 @@ function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+function AppContent() {
+  const { user, isLoading, signOut } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-stone-100">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white animate-bounce">
+            <ShoppingCart size={24} />
+          </div>
+          <div className="text-indigo-900 font-black tracking-tighter uppercase">Loading Sari-Sari POS...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <>
+        <Toaster position="top-right" />
+        <Auth />
+      </>
+    );
+  }
+
+  return (
+    <Layout onLogout={signOut}>
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/pos" element={<ProtectedRoute><CameraPOS /></ProtectedRoute>} />
+        <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+        <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/premium" element={<Premium />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Layout>
+  );
+}
+
 export default function App() {
   useEffect(() => {
     seedDatabase();
@@ -152,16 +221,9 @@ export default function App() {
 
   return (
     <Router>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/pos" element={<CameraPOS />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/customers" element={<Customers />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
-      </Layout>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </Router>
   );
 }

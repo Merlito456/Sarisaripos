@@ -1,8 +1,18 @@
+# Environment files with real secrets
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Real keys should NEVER be committed
+*.pem
+*.key
+*secret*
+
+# Standard ignores
 node_modules/
 build/
 dist/
 coverage/
 .DS_Store
 *.log
-.env*
-!.env.example

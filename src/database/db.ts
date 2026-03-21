@@ -39,6 +39,7 @@ export interface Customer {
   creditLimit: number;
   currentBalance: number;
   createdAt: Date;
+  updatedAt?: Date;
   synced?: boolean;
 }
 
@@ -54,6 +55,7 @@ export interface Transaction {
   change: number;
   timestamp: Date;
   synced: boolean;
+  items?: TransactionItem[];
 }
 
 export interface TransactionItem {

@@ -5,12 +5,16 @@ import {
   Store, Printer, Package, ShoppingCart, User, Shield, 
   Cloud, Database, Download, Upload, RefreshCw, 
   CheckCircle, AlertCircle, Eye, EyeOff, Save,
-  Moon, Sun, Monitor, Smartphone
+  Moon, Sun, Monitor, Smartphone, Crown, Star, ArrowRight
 } from 'lucide-react';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { toast } from 'react-hot-toast';
+import { Link } from 'react-router-dom';
+import { premiumService } from '../services/PremiumService';
+import { PREMIUM_PLANS } from '../config/premiumPlans';
+import { PremiumStatus } from '../types/premium';
 
-type TabType = 'store' | 'receipt' | 'inventory' | 'pos' | 'preferences' | 'backup' | 'security';
+type TabType = 'store' | 'receipt' | 'inventory' | 'pos' | 'preferences' | 'backup' | 'security' | 'premium';
 
 export const Settings: React.FC = () => {
   const { settings, updateSettings, syncStatus, syncNow, exportSettings, importSettings, testSupabaseConnection } = useSettingsStore();
@@ -19,6 +23,11 @@ export const Settings: React.FC = () => {
   const [supabaseUrl, setSupabaseUrl] = useState(settings.backup.supabaseConfig?.url || '');
   const [supabaseKey, setSupabaseKey] = useState(settings.backup.supabaseConfig?.anonKey || '');
   const [testingConnection, setTestingConnection] = useState(false);
+  const [premiumStatus, setPremiumStatus] = React.useState<PremiumStatus | null>(null);
+
+  React.useEffect(() => {
+    premiumService.getPremiumStatus().then(setPremiumStatus);
+  }, []);
   
   const tabs = [
     { id: 'store', label: 'Store Info', icon: Store },
@@ -27,7 +36,8 @@ export const Settings: React.FC = () => {
     { id: 'pos', label: 'POS', icon: ShoppingCart },
     { id: 'preferences', label: 'Preferences', icon: User },
     { id: 'backup', label: 'Backup & Sync', icon: Cloud },
-    { id: 'security', label: 'Security', icon: Shield }
+    { id: 'security', label: 'Security', icon: Shield },
+    { id: 'premium', label: 'Premium', icon: Crown }
   ];
   
   const handleTestConnection = async () => {
@@ -724,6 +734,100 @@ export const Settings: React.FC = () => {
                       />
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Premium Tab */}
+            {activeTab === 'premium' && (
+              <div className="space-y-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h2 className="text-xl font-black text-stone-900 uppercase tracking-tight">Premium Subscription</h2>
+                    <p className="text-stone-500 font-medium text-sm">Manage your plan and unlock advanced features</p>
+                  </div>
+                  <Link 
+                    to="/premium" 
+                    className="w-full md:w-auto bg-amber-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center space-x-2 hover:bg-amber-600 shadow-lg shadow-amber-100 transition-all transform active:scale-95"
+                  >
+                    <Crown size={18} />
+                    <span>Upgrade to Pro</span>
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="p-6 bg-stone-50 rounded-3xl border border-stone-100 space-y-4">
+                    <div className="flex items-center space-x-3 text-stone-900">
+                      <Star className="w-5 h-5 text-amber-500" />
+                      <h3 className="font-black uppercase tracking-tight">Current Plan</h3>
+                    </div>
+                    <p className="text-2xl font-black text-indigo-900 uppercase">{premiumStatus?.plan || 'Free'}</p>
+                    <div className="pt-2">
+                      <div className="flex justify-between text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">
+                        <span>Usage</span>
+                        <span>{premiumStatus?.usage.products || 0} / {premiumStatus?.limits.products === Infinity ? '∞' : premiumStatus?.limits.products}</span>
+                      </div>
+                      <div className="h-2 bg-stone-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-indigo-600" 
+                          style={{ width: `${Math.min(100, ((premiumStatus?.usage.products || 0) / (premiumStatus?.limits.products || 1)) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2 p-6 bg-indigo-50 rounded-3xl border border-indigo-100 space-y-4">
+                    <h3 className="font-black text-indigo-900 uppercase tracking-tight flex items-center">
+                      <RefreshCw className="w-5 h-5 mr-2" />
+                      Premium Benefits
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[
+                        'Cloud Backup & Sync',
+                        'Unlimited Products',
+                        'Multi-store Support',
+                        'Advanced Analytics',
+                        'Priority Support',
+                        'Custom Branding'
+                      ].map((benefit, i) => (
+                        <div key={i} className="flex items-center text-sm font-bold text-indigo-700">
+                          <CheckCircle className="w-4 h-4 mr-2 text-indigo-500" />
+                          {benefit}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 bg-white rounded-3xl border border-stone-200">
+                  <h3 className="font-black text-stone-900 uppercase tracking-tight mb-4">Subscription Details</h3>
+                  {premiumStatus?.isPremium ? (
+                    <div className="space-y-4">
+                      <div className="flex justify-between py-3 border-b border-stone-100">
+                        <span className="text-stone-500 font-bold uppercase tracking-widest text-xs">Status</span>
+                        <span className="text-emerald-600 font-black uppercase tracking-tight">Active</span>
+                      </div>
+                      <div className="flex justify-between py-3 border-b border-stone-100">
+                        <span className="text-stone-500 font-bold uppercase tracking-widest text-xs">Renewal Date</span>
+                        <span className="text-stone-900 font-black tracking-tight">
+                          {premiumStatus.subscription?.endDate ? new Date(premiumStatus.subscription.endDate).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-3">
+                        <span className="text-stone-500 font-bold uppercase tracking-widest text-xs">Payment Method</span>
+                        <span className="text-stone-900 font-black uppercase tracking-tight">
+                          {premiumStatus.subscription?.paymentMethod || 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-stone-500 font-medium mb-4">You are currently on the Free plan.</p>
+                      <Link to="/premium" className="text-indigo-600 font-black uppercase tracking-widest text-xs flex items-center justify-center hover:underline">
+                        View all plans <ArrowRight size={16} className="ml-1" />
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
