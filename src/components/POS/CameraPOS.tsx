@@ -8,16 +8,17 @@ import { detectionManager } from '../../detection/DetectionManager';
 import { FullScreenCamera } from './FullScreenCamera';
 import { CustomerSelector } from './CustomerSelector';
 import { ReceiptModal } from './ReceiptModal';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 export default function CameraPOS() {
+  const { user } = useAuth();
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraMode, setCameraMode] = useState<'barcode' | 'photo' | 'auto'>('auto');
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [userId, setUserId] = useState<string>('anonymous');
+  const [userId, setUserId] = useState<string>(user?.id || 'anonymous');
   
   const { 
     cart, 
@@ -33,21 +34,16 @@ export default function CameraPOS() {
   } = usePOSStore();
 
   useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserId(user.uid);
-        detectionManager.setUserId(user.uid);
-      }
-    });
+    if (user) {
+      setUserId(user.id);
+      detectionManager.setUserId(user.id);
+    }
 
     dataService.getProducts().then(setProducts).catch(err => {
       console.error('Failed to load products:', err);
       toast.error('Failed to load products');
     });
-
-    return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
