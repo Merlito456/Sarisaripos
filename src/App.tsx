@@ -229,7 +229,17 @@ function AppContent() {
 
 export default function App() {
   useEffect(() => {
+    document.title = 'Sari-Sari POS';
     seedDatabase();
+    // Ensure master database is seeded if empty
+    import('./services/MasterProductService').then(({ masterProductService }) => {
+      masterProductService.getLocalCount().then(count => {
+        if (count === 0) {
+          console.log('Master database empty, seeding from local JSON...');
+          masterProductService.seedFromLocalJson();
+        }
+      });
+    });
   }, []);
 
   return (

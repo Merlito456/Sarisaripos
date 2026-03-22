@@ -10,12 +10,14 @@ import { FullScreenCamera } from './FullScreenCamera';
 import { CustomerSelector } from './CustomerSelector';
 import { ReceiptModal } from './ReceiptModal';
 import { useAuth } from '../../contexts/AuthContext';
+import { UserPointsBadge } from '../UserPointsBadge';
 import toast from 'react-hot-toast';
 
 export default function CameraPOS() {
   const { user } = useAuth();
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraMode, setCameraMode] = useState<'barcode' | 'photo' | 'auto'>('auto');
+  const [autoOpenManual, setAutoOpenManual] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -57,6 +59,15 @@ export default function CameraPOS() {
     <div className="flex flex-col h-full bg-stone-100 lg:flex-row overflow-hidden relative">
       {/* Left Side: Camera & Search */}
       <div className="flex-1 flex flex-col p-4 space-y-4 overflow-hidden">
+        {/* Header with Points */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-black text-stone-900 uppercase tracking-tighter">Point of Sale</h1>
+            <p className="text-stone-500 text-xs font-bold uppercase tracking-widest">Sari-Sari Store POS</p>
+          </div>
+          <UserPointsBadge />
+        </div>
+
         {/* Quick Scan Options */}
         <div className="grid grid-cols-3 gap-3">
           <button
@@ -84,6 +95,20 @@ export default function CameraPOS() {
             <Zap size={24} className="mb-2" />
             <p className="font-black text-xs uppercase tracking-wider">Auto</p>
             <p className="text-[10px] opacity-70">Smart Scan</p>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          <button
+            onClick={() => {
+              setCameraMode('barcode');
+              setAutoOpenManual(true);
+              setIsCameraActive(true);
+            }}
+            className="bg-stone-800 rounded-2xl p-4 text-white flex items-center justify-center space-x-3 hover:bg-stone-900 transition-colors shadow-lg"
+          >
+            <Barcode size={20} />
+            <span className="font-black text-sm uppercase tracking-widest">Manual Barcode Entry</span>
           </button>
         </div>
 
@@ -310,7 +335,11 @@ export default function CameraPOS() {
         isOpen={isCameraActive}
         mode={cameraMode}
         userId={userId}
-        onClose={() => setIsCameraActive(false)}
+        autoOpenManual={autoOpenManual}
+        onClose={() => {
+          setIsCameraActive(false);
+          setAutoOpenManual(false);
+        }}
         onProductDetected={(product) => addToCart(product)}
         onModeChange={setCameraMode}
       />

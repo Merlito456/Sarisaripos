@@ -38,6 +38,7 @@ export class MasterProductService {
       await db.masterProducts.bulkPut(productsToInsert);
       await db.productUnits.bulkPut(unitsToInsert);
 
+      console.log(`[MasterProductService] Seeded ${productsToInsert.length} products and ${unitsToInsert.length} units.`);
       return { success: true, count: productsToInsert.length };
     } catch (error) {
       console.error('Failed to seed master database from JSON:', error);
@@ -47,9 +48,13 @@ export class MasterProductService {
 
   // Search for a product by barcode (GTIN or unit barcode)
   async findByBarcode(barcode: string): Promise<{ product: MasterProduct; unit?: ProductUnit; units?: ProductUnit[] } | null> {
+    const cleanedBarcode = barcode.trim();
+    console.log(`[MasterProductService] Finding by barcode: "${cleanedBarcode}"`);
+
     // 1. Check local units first (unit-specific barcode)
-    const localUnit = await db.productUnits.where('barcode').equals(barcode).first();
+    const localUnit = await db.productUnits.where('barcode').equals(cleanedBarcode).first();
     if (localUnit) {
+      console.log(`[MasterProductService] Found local unit match: ${localUnit.id}`);
       const product = await db.masterProducts.get(localUnit.masterProductId);
       if (product) {
         const units = await db.productUnits.where('masterProductId').equals(product.id).toArray();
@@ -58,14 +63,35 @@ export class MasterProductService {
     }
 
     // 2. Check local master products (GTIN)
-    const localProduct = await db.masterProducts.where('gtin').equals(barcode).first();
+    const localProduct = await db.masterProducts.where('gtin').equals(cleanedBarcode).first();
     if (localProduct) {
+      console.log(`[MasterProductService] Found local master product match: ${localProduct.product_name}`);
       const units = await db.productUnits.where('masterProductId').equals(localProduct.id).toArray();
       const defaultUnit = units.find(u => u.isDefault) || units[0];
       return { product: localProduct, unit: defaultUnit, units };
     }
 
-    // 3. If not found locally, check Supabase
+    // 3. Try with leading zero padding (common for UPC/EAN mismatch)
+    if (cleanedBarcode.length === 12) {
+      const paddedBarcode = '0' + cleanedBarcode;
+      console.log(`[MasterProductService] Retrying with padded barcode: "${paddedBarcode}"`);
+      const paddedUnit = await db.productUnits.where('barcode').equals(paddedBarcode).first();
+      if (paddedUnit) {
+        const product = await db.masterProducts.get(paddedUnit.masterProductId);
+        if (product) {
+          const units = await db.productUnits.where('masterProductId').equals(product.id).toArray();
+          return { product, unit: paddedUnit, units };
+        }
+      }
+      const paddedProduct = await db.masterProducts.where('gtin').equals(paddedBarcode).first();
+      if (paddedProduct) {
+        const units = await db.productUnits.where('masterProductId').equals(paddedProduct.id).toArray();
+        const defaultUnit = units.find(u => u.isDefault) || units[0];
+        return { product: paddedProduct, unit: defaultUnit, units };
+      }
+    }
+
+    // 4. If not found locally, check Supabase
     if (isSupabaseConfigured()) {
       try {
         const supabase = getSupabase();

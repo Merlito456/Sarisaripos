@@ -44,6 +44,8 @@ export const getSupabase = (): SupabaseClient => {
   return supabaseInstance;
 };
 
+export const supabase = supabaseInstance;
+
 export const isSupabaseConfigured = (): boolean => {
   return !!supabaseUrl && !!supabaseAnonKey && !!supabaseInstance;
 };

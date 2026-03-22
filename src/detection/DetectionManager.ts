@@ -13,6 +13,7 @@ export class DetectionManager {
   private isInitialized: boolean = false;
   private onDetectedCallback?: (result: DetectionResult) => void;
   private productDetectedCallback?: (product: Product) => void;
+  private onErrorCallback?: (error: Error) => void;
   
   constructor() {
     this.cameraService = new CameraService();
@@ -26,7 +27,7 @@ export class DetectionManager {
     this.barcodeScanner.onDetected((product, barcode, masterProduct, units) => {
       this.handleDetection({
         type: 'barcode',
-        productId: product.id!,
+        productId: product?.id || 'unregistered',
         product,
         barcode,
         masterProduct,
@@ -37,6 +38,9 @@ export class DetectionManager {
     
     this.barcodeScanner.onError((error) => {
       console.warn('Barcode scan error:', error);
+      if (this.onErrorCallback) {
+        this.onErrorCallback(error);
+      }
     });
   }
   
@@ -47,7 +51,7 @@ export class DetectionManager {
       // Initialize camera first
       await this.cameraService.initializeCamera(videoElement, {
         facingMode: 'environment',
-        timeout: 8000
+        timeout: 15000
       });
       
       // Initialize barcode scanner with video element
@@ -140,12 +144,36 @@ export class DetectionManager {
     return this.isInitialized;
   }
 
+  async toggleTorch(enabled: boolean): Promise<boolean> {
+    return this.cameraService.toggleTorch(enabled);
+  }
+
+  hasTorch(): boolean {
+    return this.cameraService.hasTorch();
+  }
+
+  async setZoom(zoom: number): Promise<boolean> {
+    return this.cameraService.setZoom(zoom);
+  }
+
+  getZoomCapabilities(): { min: number; max: number; step: number } | null {
+    return this.cameraService.getZoomCapabilities();
+  }
+
+  async enableAutoFocus(): Promise<void> {
+    return this.cameraService.enableAutoFocus();
+  }
+
   onDetected(callback: (result: DetectionResult) => void): void {
     this.onDetectedCallback = callback;
   }
 
   onProductDetected(callback: (product: Product) => void): void {
     this.productDetectedCallback = callback;
+  }
+
+  onError(callback: (error: Error) => void): void {
+    this.onErrorCallback = callback;
   }
 
   setUserId(userId: string): void {

@@ -13,8 +13,20 @@ Copy and paste this entire script into your Supabase SQL Editor:
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
--- 1. USER SUBSCRIPTIONS TABLE
+-- 1. USER PROFILES & SUBSCRIPTIONS
 -- ============================================
+CREATE TABLE user_profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT,
+  display_name TEXT,
+  avatar_url TEXT,
+  points INT DEFAULT 0,
+  total_contributions INT DEFAULT 0,
+  last_contribution_date DATE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 CREATE TABLE user_subscriptions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -38,7 +50,7 @@ CREATE TABLE user_subscriptions (
 -- Product Categories
 CREATE TABLE product_categories (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(50) NOT NULL,
+  name VARCHAR(50) NOT NULL UNIQUE,
   name_tagalog VARCHAR(50),
   icon VARCHAR(10),
   sort_order INT DEFAULT 0,
@@ -73,6 +85,32 @@ CREATE TABLE barcode_index (
   product_id UUID REFERENCES master_products(id) ON DELETE CASCADE,
   is_primary BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Product Units (Tingi System)
+CREATE TABLE product_units (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  master_product_id UUID REFERENCES master_products(id) ON DELETE CASCADE NOT NULL,
+  unit_name VARCHAR(50) NOT NULL, -- e.g., 'pack', 'stick', 'sachet', 'piece'
+  unit_type VARCHAR(20) DEFAULT 'retail', -- 'retail' or 'wholesale'
+  quantity INTEGER DEFAULT 1, -- How many of the base unit (e.g., 20 sticks in 1 pack)
+  selling_price DECIMAL(10, 2) DEFAULT 0,
+  cost_price DECIMAL(10, 2) DEFAULT 0,
+  is_default BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- User Contributions
+CREATE TABLE user_contributions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  master_product_id UUID REFERENCES master_products(id) ON DELETE CASCADE NOT NULL,
+  unit_id UUID REFERENCES product_units(id),
+  barcode VARCHAR(20) NOT NULL,
+  product_name VARCHAR(200) NOT NULL,
+  points_awarded INT NOT NULL DEFAULT 10,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ============================================
@@ -159,14 +197,27 @@ CREATE INDEX idx_transaction_items_transaction_id ON transaction_items(transacti
 -- ============================================
 
 -- Enable RLS
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE master_products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE product_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE barcode_index ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_contributions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transaction_items ENABLE ROW LEVEL SECURITY;
+
+-- User profile policies
+CREATE POLICY "Users can view own profile" ON user_profiles
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile" ON user_profiles
+  FOR UPDATE USING (auth.uid() = id);
+
+-- User contributions policies
+CREATE POLICY "Users can view own contributions" ON user_contributions
+  FOR SELECT USING (auth.uid() = user_id);
 
 -- Public read for master tables (all authenticated users)
 CREATE POLICY "Authenticated users can read master_products" ON master_products
@@ -211,8 +262,87 @@ CREATE POLICY "Users can manage own transaction items" ON transaction_items
   );
 
 -- ============================================
--- 6. TRIGGERS
+-- 6. FUNCTIONS & TRIGGERS
 -- ============================================
+
+-- Function to add product with multiple units
+CREATE OR REPLACE FUNCTION add_product_with_units(
+  p_user_id UUID,
+  p_barcode VARCHAR(20),
+  p_brand VARCHAR(100),
+  p_product_name VARCHAR(200),
+  p_variant VARCHAR(100),
+  p_size VARCHAR(50),
+  p_category_name VARCHAR(50),
+  p_units JSONB  -- Array of units: [{"unit_name":"pack","quantity":20,"selling_price":180,"cost_price":150,"is_default":true}, ...]
+) RETURNS UUID AS $$
+DECLARE
+  v_product_id UUID;
+  v_points INT := 10;
+  v_today DATE := CURRENT_DATE;
+  v_category_id UUID;
+  v_count INT;
+  v_unit RECORD;
+BEGIN
+  -- Check daily limit (5 contributions per day)
+  SELECT COUNT(*) INTO v_count FROM user_contributions 
+  WHERE user_id = p_user_id AND created_at::date = v_today;
+  
+  IF v_count >= 5 THEN
+    RAISE EXCEPTION 'Daily contribution limit reached (5 per day)';
+  END IF;
+
+  -- Find or create category
+  SELECT id INTO v_category_id FROM product_categories WHERE name = p_category_name;
+  IF v_category_id IS NULL THEN
+    INSERT INTO product_categories (name) VALUES (p_category_name) RETURNING id INTO v_category_id;
+  END IF;
+
+  -- Insert into master_products
+  INSERT INTO master_products (
+    gtin, brand, product_name, variant, size, category_id,
+    suggested_retail_price, suggested_cost_price, is_active
+  ) VALUES (
+    p_barcode, p_brand, p_product_name, p_variant, p_size, v_category_id,
+    COALESCE((p_units->0->>'selling_price')::DECIMAL, 0), 
+    COALESCE((p_units->0->>'cost_price')::DECIMAL, 0), 
+    true
+  ) RETURNING id INTO v_product_id;
+
+  -- Insert into barcode_index
+  INSERT INTO barcode_index (barcode, product_id, is_primary) 
+  VALUES (p_barcode, v_product_id, true);
+
+  -- Insert units
+  FOR v_unit IN SELECT * FROM jsonb_array_elements(p_units)
+  LOOP
+    INSERT INTO product_units (
+      master_product_id, unit_name, unit_type, quantity, selling_price, cost_price, is_default
+    ) VALUES (
+      v_product_id,
+      v_unit->>'unit_name',
+      COALESCE(v_unit->>'unit_type', 'retail'),
+      COALESCE((v_unit->>'quantity')::INT, 1),
+      COALESCE((v_unit->>'selling_price')::DECIMAL, 0),
+      COALESCE((v_unit->>'cost_price')::DECIMAL, 0),
+      COALESCE((v_unit->>'is_default')::BOOLEAN, false)
+    );
+  END LOOP;
+
+  -- Insert into user_contributions
+  INSERT INTO user_contributions (user_id, master_product_id, barcode, product_name, points_awarded)
+  VALUES (p_user_id, v_product_id, p_barcode, p_product_name, v_points);
+
+  -- Update user_profiles
+  UPDATE user_profiles 
+  SET points = COALESCE(points, 0) + v_points, 
+      total_contributions = COALESCE(total_contributions, 0) + 1,
+      last_contribution_date = v_today
+  WHERE id = p_user_id;
+
+  RETURN v_product_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -221,6 +351,24 @@ BEGIN
     RETURN NEW;
 END;
 $$ language 'plpgsql';
+
+CREATE TRIGGER update_user_profiles_updated_at 
+  BEFORE UPDATE ON user_profiles 
+  FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- Trigger to create profile on signup
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.user_profiles (id, email, display_name, avatar_url)
+  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'display_name', NEW.raw_user_meta_data->>'avatar_url');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE handle_new_user();
 
 CREATE TRIGGER update_user_subscriptions_updated_at 
   BEFORE UPDATE ON user_subscriptions 

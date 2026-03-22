@@ -6,6 +6,9 @@ export interface Product {
   id?: string;
   userId?: string; // Added for multi-user support
   name: string;
+  brand?: string;
+  variant?: string;
+  size?: string;
   barcode?: string;
   barcodes?: string[]; // Multiple barcodes for same product
   category: string;
@@ -18,6 +21,7 @@ export interface Product {
   unitId?: string; // Reference to productUnits
   masterProductId?: string; // Reference to masterProducts
   image?: string;
+  units?: any[]; // For local storage of multi-units
   visualFeatures?: VisualFeatures;
   timesDetected?: number;
   lastDetectedAt?: Date;

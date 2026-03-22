@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { X, Camera, Barcode, Zap, RefreshCw, AlertCircle, Check } from 'lucide-react';
 import { detectionManager } from '../../detection/DetectionManager';
-import { Product, MasterProduct, ProductUnit } from '../../database/db';
+import { Product, MasterProduct, ProductUnit, db } from '../../database/db';
 import { masterProductService } from '../../services/MasterProductService';
 import { UnitSelector } from './UnitSelector';
+import { AddProductFromBarcodeModal } from '../AddProductFromBarcodeModal';
 import { toast } from 'react-hot-toast';
 
 interface FullScreenCameraProps {
@@ -13,6 +14,7 @@ interface FullScreenCameraProps {
   onClose: () => void;
   onProductDetected: (product: Product) => void;
   onModeChange?: (mode: 'barcode' | 'photo' | 'auto') => void;
+  autoOpenManual?: boolean;
 }
 
 export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
@@ -21,7 +23,8 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
   userId,
   onClose,
   onProductDetected,
-  onModeChange
+  onModeChange,
+  autoOpenManual = false
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -29,28 +32,42 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isDetecting, setIsDetecting] = useState(false);
   const [lastDetectedBarcode, setLastDetectedBarcode] = useState<string>('');
-  const [detectionHistory, setDetectionHistory] = useState<Product[]>([]);
   
   // Unit selection state
   const [isUnitSelectorOpen, setIsUnitSelectorOpen] = useState(false);
   const [selectedMasterProduct, setSelectedMasterProduct] = useState<MasterProduct | null>(null);
   const [availableUnits, setAvailableUnits] = useState<ProductUnit[]>([]);
   const [currentBarcode, setCurrentBarcode] = useState<string>('');
+  const [isTorchOn, setIsTorchOn] = useState(false);
+  const [hasTorch, setHasTorch] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [zoomCapabilities, setZoomCapabilities] = useState<{ min: number; max: number; step: number } | null>(null);
+  const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
+  const [manualBarcode, setManualBarcode] = useState('');
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [quickAddBarcode, setQuickAddBarcode] = useState('');
   
   // Initialize camera when modal opens
   useEffect(() => {
     if (isOpen) {
       initializeCamera();
+      if (autoOpenManual) {
+        setIsManualEntryOpen(true);
+      }
     }
     
     return () => {
       stopCamera();
     };
-  }, [isOpen, mode]);
+  }, [isOpen, mode, autoOpenManual]);
   
   const initializeCamera = async () => {
     setStatus('loading');
     setErrorMessage('');
+    setIsTorchOn(false);
+    setZoom(1);
+    setManualBarcode('');
+    setIsQuickAddOpen(false);
 
     // Wait for ref to be available if it's not yet (React ref attachment can sometimes be delayed)
     let attempts = 0;
@@ -75,11 +92,40 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
       // Initialize detection manager with video element (it will handle camera initialization)
       await detectionManager.initialize(videoRef.current);
       detectionManager.setMode(mode);
+      detectionManager.setUserId(userId);
+      
+      // Check for torch and zoom support
+      setHasTorch(detectionManager.hasTorch());
+      setZoomCapabilities(detectionManager.getZoomCapabilities());
+      
+      // Enable continuous autofocus
+      await detectionManager.enableAutoFocus();
       
       // Setup detection callback
       detectionManager.onDetected((result) => {
         if (result.product) {
           handleProductDetected(result);
+        }
+      });
+
+      detectionManager.onError((error) => {
+        if (error.message.includes('Product not registered')) {
+          const barcode = error.message.split(': ')[1];
+          setQuickAddBarcode(barcode || '');
+          setIsQuickAddOpen(true);
+          
+          toast.error(error.message, {
+            id: 'barcode-error',
+            duration: 4000,
+            position: 'top-center',
+            style: {
+              background: '#1f2937',
+              color: '#fff',
+              border: '1px solid #374151',
+              padding: '16px',
+              borderRadius: '12px'
+            }
+          });
         }
       });
       
@@ -100,8 +146,67 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
       videoRef.current.srcObject = null;
     }
     detectionManager.stopCamera();
+    setIsTorchOn(false);
+    setZoom(1);
   };
-  
+
+  const toggleTorch = async () => {
+    const newState = !isTorchOn;
+    const success = await detectionManager.toggleTorch(newState);
+    if (success) {
+      setIsTorchOn(newState);
+    } else {
+      toast.error('Flashlight not available');
+    }
+  };
+
+  const handleZoomChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newZoom = parseFloat(e.target.value);
+    if (isNaN(newZoom)) return;
+    setZoom(newZoom);
+    await detectionManager.setZoom(newZoom);
+  };
+
+  const handleManualSubmit = async (e?: React.FormEvent, barcodeOverride?: string) => {
+    if (e) e.preventDefault();
+    const barcode = (barcodeOverride || manualBarcode).trim();
+    if (!barcode) return;
+
+    try {
+      // Use masterProductService directly for manual lookup
+      const result = await masterProductService.lookupByBarcode(barcode);
+      
+      if (result && (result.product || result.masterProduct)) {
+        handleProductDetected({
+          product: result.product || {
+            name: result.masterProduct?.product_name || 'Unknown Product',
+            price: result.masterProduct?.suggested_retail_price || 0,
+            cost: result.masterProduct?.suggested_cost_price || 0,
+            stock: 0,
+            minStock: 0,
+            category: result.masterProduct?.subcategory || 'General',
+            barcode: barcode,
+            masterProductId: result.masterProduct?.id,
+            userId: userId,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          },
+          masterProduct: result.masterProduct,
+          availableUnits: result.units,
+          barcode: barcode
+        });
+        setIsManualEntryOpen(false);
+      } else {
+        setQuickAddBarcode(barcode);
+        setIsManualEntryOpen(false);
+        setIsQuickAddOpen(true);
+      }
+    } catch (error) {
+      console.error('Manual lookup failed:', error);
+      toast.error('Lookup failed. Please try again.');
+    }
+  };
+
   const handleProductDetected = (result: any) => {
     const { product, masterProduct, availableUnits, barcode } = result;
     if (!product) return;
@@ -120,12 +225,6 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
   };
 
   const processDetectedProduct = (product: Product) => {
-    // Add to detection history
-    setDetectionHistory(prev => {
-      const exists = prev.find(p => p.id === product.id);
-      if (exists) return prev;
-      return [product, ...prev].slice(0, 5);
-    });
     setLastDetectedBarcode(product.barcodes?.[0] || product.barcode || '');
     
     // Show success feedback
@@ -299,29 +398,58 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
             <div className="absolute top-8 left-0 right-0 text-center">
               <div className="inline-block bg-black bg-opacity-70 px-4 py-2 rounded-full backdrop-blur-sm">
                 <p className="text-white text-sm">
-                  {mode === 'barcode' && '📱 Position barcode inside the frame'}
+                  {mode === 'barcode' && '📱 Supports all barcode types (EAN, UPC, QR, etc.)'}
                   {mode === 'photo' && '🤖 Tap camera button to capture product'}
                   {mode === 'auto' && '🔄 Auto-detecting barcode or product'}
                 </p>
               </div>
+              
+              {mode === 'barcode' && status === 'ready' && (
+                <div className="mt-4 flex items-center justify-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-white text-xs font-medium uppercase tracking-widest opacity-70">Scanning active</span>
+                </div>
+              )}
             </div>
           </div>
           
-          {/* Detection History (Recent Detections) */}
-          {detectionHistory.length > 0 && (
-            <div className="absolute bottom-32 left-4 right-4">
-              <div className="bg-black bg-opacity-80 rounded-lg p-2 backdrop-blur-sm">
-                <p className="text-gray-400 text-xs mb-1">Recently detected:</p>
-                <div className="flex space-x-2 overflow-x-auto">
-                  {detectionHistory.map((product, idx) => (
-                    <div key={idx} className="bg-gray-800 rounded-lg px-3 py-1 whitespace-nowrap">
-                      <span className="text-white text-sm">{product.name}</span>
-                    </div>
-                  ))}
-                </div>
+          {/* Top Controls */}
+          <div className="absolute top-8 right-4 z-30 flex flex-col space-y-4 items-center">
+            {hasTorch && (
+              <button
+                onClick={toggleTorch}
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                  isTorchOn ? 'bg-yellow-500 text-white' : 'bg-black/50 text-white'
+                }`}
+              >
+                <Zap size={24} fill={isTorchOn ? 'currentColor' : 'none'} />
+              </button>
+            )}
+
+            {zoomCapabilities && zoomCapabilities.max > zoomCapabilities.min && (
+              <div className="flex flex-col items-center bg-black/50 rounded-full py-4 px-2 backdrop-blur-sm">
+                <span className="text-white text-[10px] font-bold mb-2">{(isNaN(zoom) ? 1 : zoom).toFixed(1)}x</span>
+                <input
+                  type="range"
+                  min={zoomCapabilities.min || 1}
+                  max={zoomCapabilities.max || 1}
+                  step={zoomCapabilities.step || 0.1}
+                  value={isNaN(zoom) ? 1 : zoom}
+                  onChange={handleZoomChange}
+                  className="h-32 w-1 appearance-none bg-gray-600 rounded-full outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
+                  style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
+                />
               </div>
-            </div>
-          )}
+            )}
+
+            <button
+              onClick={() => setIsManualEntryOpen(true)}
+              className="w-12 h-12 bg-black/50 rounded-full text-white flex items-center justify-center backdrop-blur-sm"
+              title="Manual Entry"
+            >
+              <Barcode size={24} />
+            </button>
+          </div>
           
           {/* Bottom Controls */}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent pt-8 pb-8">
@@ -409,17 +537,58 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
                 <RefreshCw size={24} />
               </button>
             </div>
-            
-            {/* Barcode Detection Status */}
-            {mode === 'barcode' && lastDetectedBarcode && (
-              <div className="text-center mt-4">
-                <p className="text-green-400 text-xs font-medium">
-                  Last scanned: {lastDetectedBarcode}
-                </p>
-              </div>
-            )}
           </div>
         </>
+      )}
+      
+      {/* Add Product Modal */}
+      <AddProductFromBarcodeModal
+        isOpen={isQuickAddOpen}
+        onClose={() => setIsQuickAddOpen(false)}
+        onProductAdded={(product) => {
+          setIsQuickAddOpen(false);
+          processDetectedProduct(product);
+        }}
+        barcode={quickAddBarcode}
+      />
+
+      {/* Manual Entry Dialog */}
+      {isManualEntryOpen && (
+        <div className="absolute inset-0 z-[60] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900">Manual Entry</h3>
+                <button onClick={() => setIsManualEntryOpen(false)} className="text-gray-400 hover:text-gray-600">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <form onSubmit={handleManualSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Barcode Number
+                  </label>
+                  <input
+                    type="text"
+                    value={manualBarcode}
+                    onChange={(e) => setManualBarcode(e.target.value)}
+                    placeholder="Enter barcode number"
+                    className="w-full px-4 py-3 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-lg"
+                    autoFocus
+                  />
+                </div>
+                
+                <button
+                  type="submit"
+                  className="w-full py-4 bg-blue-500 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-blue-600 transition-colors"
+                >
+                  Find Product
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
       
       {/* Detection Overlay for Photo Mode */}

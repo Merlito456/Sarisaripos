@@ -98,18 +98,48 @@ class DataService {
 
   // MASTER PRODUCTS
   async searchMasterProducts(query: string): Promise<any[]> {
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from('master_products')
-      .select('*')
-      .or(`name.ilike.%${query}%,barcode.eq.${query}`)
-      .limit(10);
-    
-    if (error) {
-      console.warn('Failed to search master products:', error);
-      return [];
+    try {
+      // Import the seed data dynamically to avoid bloating the initial bundle if needed,
+      // but for now we can just use the imported one if we had it.
+      // Since we are in a service, we can use a dynamic import or just import it at the top.
+      const masterProductsSeed = (await import('../database/master_products_seed.json')).default;
+      
+      const lowerQuery = query.toLowerCase();
+      return masterProductsSeed.filter((p: any) => 
+        p.product_name?.toLowerCase().includes(lowerQuery) ||
+        p.brand?.toLowerCase().includes(lowerQuery) ||
+        p.gtin?.includes(query)
+      ).slice(0, 10).map((p: any) => ({
+        id: p.id,
+        name: `${p.brand} ${p.product_name}${p.variant ? ` (${p.variant})` : ''}`,
+        barcode: p.gtin,
+        category: p.subcategory || 'General',
+        suggested_price: p.suggested_retail_price || 0,
+        image: p.image_url
+      }));
+    } catch (error) {
+      console.warn('Failed to search master products locally:', error);
+      
+      // Fallback to Supabase if local search fails
+      const supabase = getSupabase();
+      const { data, error: sbError } = await supabase
+        .from('master_products')
+        .select('*')
+        .or(`name.ilike.%${query}%,barcode.eq.${query}`)
+        .limit(10);
+      
+      if (sbError) {
+        console.warn('Failed to search master products on Supabase:', sbError);
+        return [];
+      }
+      return data.map(p => ({
+        id: p.id,
+        name: p.name,
+        barcode: p.barcode,
+        category: p.category,
+        suggested_price: p.price
+      }));
     }
-    return data;
   }
 
   // CUSTOMERS
