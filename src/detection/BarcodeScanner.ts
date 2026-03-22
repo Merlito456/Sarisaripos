@@ -59,24 +59,20 @@ export class BarcodeScanner {
       return;
     }
 
-    // Step 2: Check if user is premium
-    const isPremium = await premiumService.isUserPremium(this.userId);
-    
-    if (!isPremium) {
-      // Free user - show upgrade prompt
-      this.onErrorCallback?.(new Error(
-        'Premium feature: Upgrade to add products from barcode scanning'
-      ));
-      return;
-    }
-    
-    // Step 3: Premium user - lookup in master database
+    // Step 2: Lookup in master database (Available for all users who downloaded the database)
     try {
       const result = await masterProductService.lookupByBarcode(cleanedBarcode);
       
       if (result) {
         const { masterProduct, matchedUnit, units } = result;
         
+        // Check if user has reached product limit if they are about to add a new one
+        const canAdd = await premiumService.canAddProduct();
+        if (!canAdd) {
+          this.onErrorCallback?.(new Error('Product limit reached. Upgrade to add more products.'));
+          return;
+        }
+
         // If it's a direct unit match, we can add it directly
         if (matchedUnit && matchedUnit.barcode === cleanedBarcode) {
           const newProduct = await masterProductService.addToInventory(

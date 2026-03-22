@@ -5,6 +5,7 @@ import { usePOSStore } from '../../store/usePOSStore';
 import { type Product } from '../../database/db';
 import { dataService } from '../../services/DataService';
 import { detectionManager } from '../../detection/DetectionManager';
+import { masterProductService } from '../../services/MasterProductService';
 import { FullScreenCamera } from './FullScreenCamera';
 import { CustomerSelector } from './CustomerSelector';
 import { ReceiptModal } from './ReceiptModal';
@@ -131,6 +132,33 @@ export default function CameraPOS() {
                   <div className="text-indigo-600 font-black mt-2 text-lg">₱{product.price.toFixed(2)}</div>
                 </motion.button>
               ))}
+            
+            {searchQuery && products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+              <div className="col-span-full py-12 flex flex-col items-center justify-center text-center space-y-4">
+                <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center text-amber-500">
+                  <Search size={32} />
+                </div>
+                <div>
+                  <p className="font-black text-stone-900 uppercase tracking-tight">No local products found</p>
+                  <p className="text-stone-400 text-xs font-medium uppercase tracking-widest mt-1">Try searching our master database</p>
+                </div>
+                <button
+                  onClick={async () => {
+                    const masterResults = await masterProductService.searchProducts(searchQuery);
+                    if (masterResults.length > 0) {
+                      // We could show a modal with master results
+                      // For now, let's just toast that they should use the scanner or add manually
+                      toast.success(`Found ${masterResults.length} products in master database. Use the scanner to add them instantly!`);
+                    } else {
+                      toast.error('No products found in master database either.');
+                    }
+                  }}
+                  className="px-6 py-3 bg-amber-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-amber-100 hover:bg-amber-600 transition-all"
+                >
+                  Search Master Database
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
