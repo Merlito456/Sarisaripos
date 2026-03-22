@@ -354,7 +354,7 @@ export const Settings: React.FC = () => {
                   <div className="flex flex-col sm:flex-row items-center gap-4">
                     <button
                       onClick={handleDownloadMaster}
-                      disabled={isDownloadingMaster || !settings.backup.supabaseConfig?.url}
+                      disabled={isDownloadingMaster}
                       className="w-full sm:w-auto px-6 py-4 bg-amber-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center space-x-2 shadow-lg shadow-amber-100"
                     >
                       {isDownloadingMaster ? <RefreshCw size={18} className="animate-spin" /> : <Download size={18} />}

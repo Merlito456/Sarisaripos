@@ -3,9 +3,47 @@
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase';
 import { db, MasterProduct, ProductUnit, Product } from '../database/db';
 import { toast } from 'react-hot-toast';
+import masterSeedData from '../database/master_products_seed.json';
 
 export class MasterProductService {
   private isDownloading: boolean = false;
+
+  // Seed the local master database from the embedded JSON file
+  async seedFromLocalJson(): Promise<{ success: boolean; count: number }> {
+    try {
+      const productsToInsert: MasterProduct[] = [];
+      const unitsToInsert: ProductUnit[] = [];
+
+      for (const item of masterSeedData) {
+        const { units, ...product } = item;
+        productsToInsert.push({
+          ...product,
+          created_at: new Date(),
+          updated_at: new Date()
+        } as MasterProduct);
+
+        if (units && units.length > 0) {
+          units.forEach((u: any) => {
+            unitsToInsert.push({
+              ...u,
+              masterProductId: product.id,
+              isActive: true,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            } as ProductUnit);
+          });
+        }
+      }
+
+      await db.masterProducts.bulkPut(productsToInsert);
+      await db.productUnits.bulkPut(unitsToInsert);
+
+      return { success: true, count: productsToInsert.length };
+    } catch (error) {
+      console.error('Failed to seed master database from JSON:', error);
+      return { success: false, count: 0 };
+    }
+  }
 
   // Search for a product by barcode (GTIN or unit barcode)
   async findByBarcode(barcode: string): Promise<{ product: MasterProduct; unit?: ProductUnit; units?: ProductUnit[] } | null> {
@@ -313,10 +351,6 @@ export class MasterProductService {
 
   // Download the entire master database for offline use
   async downloadMasterDatabase(): Promise<{ success: boolean; count: number; error?: string }> {
-    if (!isSupabaseConfigured()) {
-      return { success: false, count: 0, error: 'Supabase not configured' };
-    }
-
     if (this.isDownloading) {
       return { success: false, count: 0, error: 'Download already in progress' };
     }
@@ -325,6 +359,12 @@ export class MasterProductService {
     let totalDownloaded = 0;
 
     try {
+      if (!isSupabaseConfigured()) {
+        console.log('Supabase not configured, falling back to local seed data');
+        const seedResult = await this.seedFromLocalJson();
+        return { success: seedResult.success, count: seedResult.count };
+      }
+
       const supabase = getSupabase();
       
       // We'll download in batches to avoid memory issues
@@ -391,10 +431,22 @@ export class MasterProductService {
         }
       }
 
+      if (totalDownloaded === 0) {
+        console.log('No products found in Supabase, falling back to local seed data');
+        const seedResult = await this.seedFromLocalJson();
+        toast.success(`Seeded ${seedResult.count} products from local database`, { id: 'master-download' });
+        return { success: seedResult.success, count: seedResult.count };
+      }
+
       toast.success(`Downloaded ${totalDownloaded} products for offline use`, { id: 'master-download' });
       return { success: true, count: totalDownloaded };
     } catch (error: any) {
-      console.error('Failed to download master database:', error);
+      console.error('Failed to download master database, trying local seed:', error);
+      const seedResult = await this.seedFromLocalJson();
+      if (seedResult.success) {
+        toast.success(`Fell back to local database (${seedResult.count} products)`, { id: 'master-download' });
+        return { success: true, count: seedResult.count };
+      }
       toast.error('Failed to download master database: ' + error.message, { id: 'master-download' });
       return { success: false, count: totalDownloaded, error: error.message };
     } finally {

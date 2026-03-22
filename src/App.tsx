@@ -23,7 +23,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
   const { syncStatus } = useSettingsStore();
 
   const navItems = [
-    { path: '/', icon: <LayoutDashboard size={20} />, label: 'Home' },
+    { path: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Home' },
     { path: '/pos', icon: <ShoppingCart size={20} />, label: 'POS' },
     { path: '/inventory', icon: <Package size={20} />, label: 'Stock' },
     { path: '/customers', icon: <Users size={20} />, label: 'Suki' },

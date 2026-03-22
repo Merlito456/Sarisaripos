@@ -1,0 +1,142 @@
+[
+  {
+    "id": "m1",
+    "gtin": "4800016601111",
+    "brand": "Coca-Cola",
+    "product_name": "Coke Regular",
+    "variant": "Regular",
+    "size": "290ml",
+    "category_id": "c1",
+    "subcategory": "Drinks",
+    "description": "Classic Coca-Cola taste",
+    "suggested_retail_price": 15.00,
+    "suggested_cost_price": 12.00,
+    "is_active": true,
+    "units": [
+      {
+        "id": "u1",
+        "unit_name": "Bottle",
+        "unit_type": "piece",
+        "quantity": 1,
+        "barcode": "4800016601111",
+        "selling_price": 15.00,
+        "cost_price": 12.00,
+        "is_default": true
+      },
+      {
+        "id": "u2",
+        "unit_name": "Case",
+        "unit_type": "case",
+        "quantity": 24,
+        "barcode": "4800016601112",
+        "selling_price": 340.00,
+        "cost_price": 280.00,
+        "is_default": false
+      }
+    ]
+  },
+  {
+    "id": "m2",
+    "gtin": "4800016602222",
+    "brand": "Lucky Me",
+    "product_name": "Pancit Canton",
+    "variant": "Extra Hot Chili",
+    "size": "80g",
+    "category_id": "c2",
+    "subcategory": "Noodles",
+    "description": "Instant noodles",
+    "suggested_retail_price": 18.00,
+    "suggested_cost_price": 15.00,
+    "is_active": true,
+    "units": [
+      {
+        "id": "u3",
+        "unit_name": "Pack",
+        "unit_type": "piece",
+        "quantity": 1,
+        "barcode": "4800016602222",
+        "selling_price": 18.00,
+        "cost_price": 15.00,
+        "is_default": true
+      }
+    ]
+  },
+  {
+    "id": "m3",
+    "gtin": "4800016603333",
+    "brand": "Nescafe",
+    "product_name": "Classic",
+    "variant": "Original",
+    "size": "2g",
+    "category_id": "c3",
+    "subcategory": "Coffee",
+    "description": "Instant coffee sachet",
+    "suggested_retail_price": 8.00,
+    "suggested_cost_price": 6.50,
+    "is_active": true,
+    "units": [
+      {
+        "id": "u4",
+        "unit_name": "Sachet",
+        "unit_type": "piece",
+        "quantity": 1,
+        "barcode": "4800016603333",
+        "selling_price": 8.00,
+        "cost_price": 6.50,
+        "is_default": true
+      }
+    ]
+  },
+  {
+    "id": "m4",
+    "gtin": "4800016604444",
+    "brand": "Safeguard",
+    "product_name": "Bar Soap",
+    "variant": "White",
+    "size": "130g",
+    "category_id": "c4",
+    "subcategory": "Personal Care",
+    "description": "Antibacterial soap",
+    "suggested_retail_price": 45.00,
+    "suggested_cost_price": 38.00,
+    "is_active": true,
+    "units": [
+      {
+        "id": "u5",
+        "unit_name": "Bar",
+        "unit_type": "piece",
+        "quantity": 1,
+        "barcode": "4800016604444",
+        "selling_price": 45.00,
+        "cost_price": 38.00,
+        "is_default": true
+      }
+    ]
+  },
+  {
+    "id": "m5",
+    "gtin": "4800016605555",
+    "brand": "SkyFlakes",
+    "product_name": "Crackers",
+    "variant": "Original",
+    "size": "25g",
+    "category_id": "c5",
+    "subcategory": "Snacks",
+    "description": "Classic crackers",
+    "suggested_retail_price": 7.00,
+    "suggested_cost_price": 5.50,
+    "is_active": true,
+    "units": [
+      {
+        "id": "u6",
+        "unit_name": "Pack",
+        "unit_type": "piece",
+        "quantity": 1,
+        "barcode": "4800016605555",
+        "selling_price": 7.00,
+        "cost_price": 5.50,
+        "is_default": true
+      }
+    ]
+  }
+]
