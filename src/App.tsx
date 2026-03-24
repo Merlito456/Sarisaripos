@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
+import React, { useState, useEffect, ErrorInfo, ReactNode } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings as SettingsIcon, Menu, X, Crown, LogOut, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
@@ -17,10 +17,20 @@ import { useSettingsStore } from './store/useSettingsStore';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
-  constructor(props: { children: ReactNode }) {
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<any, any> {
+  public state: any = { hasError: false, error: null };
+
+  constructor(props: any) {
     super(props);
-    this.state = { hasError: false, error: null };
   }
 
   static getDerivedStateFromError(error: Error) {
@@ -190,17 +200,17 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative pt-16 lg:pt-0 pb-28 lg:pb-0 bg-white min-h-0">
+      <main className="flex-1 flex flex-col overflow-y-auto relative pt-16 lg:pt-0 pb-28 lg:pb-0 bg-white min-h-0">
         <Toaster position="top-right" />
-        <div className="min-h-full flex flex-col">
-          <div className="bg-indigo-600 text-white text-[10px] p-1 text-center font-bold uppercase tracking-widest z-50">
-            --- Content Start ---
+        <div className="flex-1 flex flex-col min-h-full">
+          <div className="bg-indigo-600 text-white text-[12px] p-2 text-center font-black uppercase tracking-widest z-50 border-b-4 border-indigo-800">
+            --- CONTENT AREA START ---
           </div>
-          <div className="flex-1 bg-stone-50">
+          <div className="flex-1 bg-stone-50 p-4">
             {children}
           </div>
-          <div className="bg-indigo-600 text-white text-[10px] p-1 text-center font-bold uppercase tracking-widest z-50">
-            --- Content End ---
+          <div className="bg-indigo-600 text-white text-[12px] p-2 text-center font-black uppercase tracking-widest z-50 border-t-4 border-indigo-800">
+            --- CONTENT AREA END ---
           </div>
         </div>
       </main>
@@ -233,21 +243,25 @@ function AppContent() {
   const [debugInfo, setDebugInfo] = useState<string>("");
   const [logs, setLogs] = useState<string[]>([]);
 
+  const location = useLocation();
+
   // Global log function for debugging
   useEffect(() => {
     const originalLog = console.log;
     const originalError = console.error;
     
-    const addLog = (msg: string, type: 'log' | 'error' = 'log') => {
-      setLogs(prev => [msg.slice(0, 100), ...prev].slice(0, 10));
+    const addLog = (msg: string) => {
+      setLogs(prev => [msg.slice(0, 100), ...prev].slice(0, 15));
     };
 
     console.log = (...args) => {
-      addLog(args.map(String).join(' '));
+      const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+      addLog(msg);
       originalLog(...args);
     };
     console.error = (...args) => {
-      addLog(args.map(String).join(' '), 'error');
+      const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+      addLog("ERROR: " + msg);
       originalError(...args);
     };
 
@@ -261,20 +275,20 @@ function AppContent() {
     document.title = 'Sari-Sari POS';
     
     const initDb = async () => {
-      console.log("Starting DB Init...");
+      console.log("DB Init Start");
       try {
         await seedDatabase();
         console.log("DB Seeded");
         const { masterProductService } = await import('./services/MasterProductService');
         const count = await masterProductService.getLocalCount();
-        console.log("Master count:", count);
+        console.log("Master count: " + count);
         if (count === 0) {
           console.log('Seeding master products...');
           await masterProductService.seedFromLocalJson();
           console.log('Master seeded');
         }
       } catch (err) {
-        console.error("DB Error:", err);
+        console.error("DB Error: " + (err instanceof Error ? err.message : String(err)));
       }
     };
 
@@ -290,11 +304,11 @@ function AppContent() {
     const info = [
       `User: ${user ? 'Logged In' : 'None'}`,
       `Loading: ${isLoading}`,
-      `Path: ${window.location.hash || '/'}`,
+      `Path: ${location.pathname}${location.hash}`,
       `Size: ${window.innerWidth}x${window.innerHeight}`
     ].join(' | ');
     setDebugInfo(info);
-  }, [user, isLoading]);
+  }, [user, isLoading, location]);
 
   if (isLoading) {
     return (
@@ -319,18 +333,26 @@ function AppContent() {
   }
 
   return (
-    <Layout onLogout={signOut}>
-      {/* Debug Overlay - Visible for troubleshooting */}
-      <div className="fixed top-0 left-0 right-0 z-[9999] pointer-events-none bg-black/90 text-white p-1 text-[9px] font-mono">
-        <div className="flex justify-center border-b border-white/20 pb-1 mb-1">{debugInfo}</div>
-        <div className="max-h-20 overflow-hidden opacity-80">
-          {logs.map((log, i) => (
-            <div key={i} className="truncate border-l-2 border-indigo-500 pl-1 mb-0.5">{log}</div>
-          ))}
+      <Layout onLogout={signOut}>
+        {/* Debug Overlay - Visible for troubleshooting */}
+        <div className="fixed top-0 left-0 right-0 z-[9999] pointer-events-none bg-black/90 text-white p-1 text-[9px] font-mono">
+          <div className="flex justify-between items-center border-b border-white/20 pb-1 mb-1 px-2">
+            <span>{debugInfo}</span>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="pointer-events-auto bg-red-600 px-2 py-0.5 rounded font-black uppercase text-[8px]"
+            >
+              Reload
+            </button>
+          </div>
+          <div className="max-h-24 overflow-hidden opacity-80 px-2">
+            {logs.map((log, i) => (
+              <div key={i} className="truncate border-l-2 border-indigo-500 pl-1 mb-0.5">{log}</div>
+            ))}
+          </div>
         </div>
-      </div>
-      
-      <Routes>
+        
+        <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/pos" element={<ProtectedRoute><CameraPOS /></ProtectedRoute>} />

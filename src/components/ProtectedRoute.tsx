@@ -12,7 +12,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requirePremium = false 
 }) => {
   const { user, isLoading, isPremium } = useAuth();
-  console.log("ProtectedRoute check:", { user: !!user, isLoading, isPremium, path: window.location.hash });
+  
+  // Stringify for WebView console visibility
+  console.log("ProtectedRoute check: " + JSON.stringify({ 
+    user: !!user, 
+    isLoading, 
+    isPremium, 
+    hash: window.location.hash,
+    path: window.location.pathname
+  }));
 
   if (isLoading) {
     return (
