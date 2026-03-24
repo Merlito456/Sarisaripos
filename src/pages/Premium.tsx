@@ -101,7 +101,7 @@ export const Premium: React.FC = () => {
           <div className="bg-white rounded-2xl p-1.5 shadow-sm border border-stone-200 flex">
             <button
               onClick={() => setBillingInterval('month')}
-              className={`px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all ${
+              className={`px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 ${
                 billingInterval === 'month'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
                   : 'text-stone-400 hover:text-stone-600'
@@ -111,7 +111,7 @@ export const Premium: React.FC = () => {
             </button>
             <button
               onClick={() => setBillingInterval('year')}
-              className={`px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all flex items-center ${
+              className={`px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all flex items-center active:scale-95 ${
                 billingInterval === 'year'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
                   : 'text-stone-400 hover:text-stone-600'
@@ -134,7 +134,7 @@ export const Premium: React.FC = () => {
             return (
               <div
                 key={planId}
-                className={`relative bg-white rounded-3xl shadow-sm overflow-hidden transition-all hover:shadow-xl border-2 cursor-pointer ${
+                className={`relative bg-white rounded-3xl shadow-sm overflow-hidden transition-all hover:shadow-xl border-2 cursor-pointer active:scale-[0.98] ${
                   selectedPlan === planId ? 'border-indigo-600 scale-105 z-10' : 'border-stone-100'
                 } ${isCurrentPlan(planId) ? 'bg-indigo-50/30' : ''}`}
                 onClick={() => setSelectedPlan(planId)}
