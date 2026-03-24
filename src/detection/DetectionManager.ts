@@ -1,6 +1,7 @@
 import { CameraService } from '../services/CameraService';
 import { BarcodeScanner } from './BarcodeScanner';
 import { PhotoDetector } from './PhotoDetector';
+import { TextDetector } from './TextDetector';
 import { Product, db } from '../database/db';
 import { DetectionMode, DetectionResult } from '../types/detection';
 
@@ -8,6 +9,7 @@ export class DetectionManager {
   private cameraService: CameraService;
   private barcodeScanner: BarcodeScanner;
   private photoDetector: PhotoDetector;
+  private textDetector: TextDetector;
   private currentMode: DetectionMode = 'auto';
   private videoElement: HTMLVideoElement | null = null;
   private isInitialized: boolean = false;
@@ -19,6 +21,7 @@ export class DetectionManager {
     this.cameraService = new CameraService();
     this.barcodeScanner = new BarcodeScanner();
     this.photoDetector = new PhotoDetector();
+    this.textDetector = new TextDetector();
     
     this.setupCallbacks();
   }
@@ -57,9 +60,14 @@ export class DetectionManager {
       // Initialize barcode scanner with video element
       await this.barcodeScanner.initialize(videoElement);
       
-      // Load AI model in background (don't wait for it)
-      this.photoDetector.loadModel().catch(error => {
-        console.warn('AI model load failed:', error);
+      // Load AI models in background (don't wait for it)
+      this.photoDetector.loadModels().catch(error => {
+        console.warn('AI models load failed:', error);
+      });
+
+      // Load OCR in background
+      this.textDetector.initialize().catch(error => {
+        console.warn('OCR initialization failed:', error);
       });
       
       this.isInitialized = true;
@@ -74,7 +82,7 @@ export class DetectionManager {
   
   async detectFromPhoto(imageElement: HTMLImageElement | HTMLCanvasElement | HTMLVideoElement): Promise<DetectionResult[]> {
     if (!this.photoDetector.isModelReady()) {
-      await this.photoDetector.loadModel();
+      await this.photoDetector.loadModels();
     }
     
     const detections = await this.photoDetector.detectProducts(imageElement);
@@ -97,6 +105,22 @@ export class DetectionManager {
     }
     
     return results;
+  }
+
+  async detectFromText(imageElement: HTMLImageElement | HTMLCanvasElement | HTMLVideoElement): Promise<DetectionResult> {
+    const text = await this.textDetector.recognizeText(imageElement);
+    const products = await this.textDetector.findProductsFromText(text);
+
+    const result: DetectionResult = {
+      type: 'text',
+      text,
+      confidence: products.length > 0 ? 0.8 : 0.2,
+      product: products[0],
+      multipleMatches: products.length > 1 ? products : undefined
+    };
+
+    this.handleDetection(result);
+    return result;
   }
   
   private async handleDetection(result: DetectionResult): Promise<void> {

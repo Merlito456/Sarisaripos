@@ -1,14 +1,15 @@
 import { Product, ProductUnit, MasterProduct } from '../database/db';
 
 // Detection modes
-export type DetectionMode = 'barcode' | 'photo' | 'auto';
+export type DetectionMode = 'barcode' | 'photo' | 'text' | 'auto';
 
 // Detection results
 export interface DetectionResult {
-  type: 'barcode' | 'photo' | 'manual';
+  type: 'barcode' | 'photo' | 'text' | 'manual';
   productId?: string;
   product?: Product;
   barcode?: string;
+  text?: string; // Extracted text for OCR
   confidence: number;
   multipleMatches?: Product[];
   availableUnits?: ProductUnit[];

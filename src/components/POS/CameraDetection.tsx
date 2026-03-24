@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Camera, Barcode, Image as ImageIcon, Zap, RefreshCw, AlertCircle } from 'lucide-react';
+import { Camera, Barcode, Image as ImageIcon, Zap, RefreshCw, AlertCircle, Type } from 'lucide-react';
 import { detectionManager } from '../../detection/DetectionManager';
 import { Product } from '../../database/db';
 import { toast } from 'react-hot-toast';
@@ -17,7 +17,7 @@ export const CameraDetection: React.FC<CameraDetectionProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [mode, setMode] = useState<'auto' | 'barcode' | 'photo'>('auto');
+  const [mode, setMode] = useState<'auto' | 'barcode' | 'photo' | 'text'>('auto');
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isDetecting, setIsDetecting] = useState(false);
@@ -35,7 +35,7 @@ export const CameraDetection: React.FC<CameraDetectionProps> = ({
     
     try {
       await detectionManager.initialize(videoRef.current);
-      detectionManager.setMode(mode);
+      detectionManager.setMode(mode === 'text' ? 'auto' : mode); // DetectionManager uses auto for background tasks
       setStatus('ready');
       toast.success('Camera ready!');
     } catch (error: any) {
@@ -90,16 +90,50 @@ export const CameraDetection: React.FC<CameraDetectionProps> = ({
       setIsDetecting(false);
     }
   };
+
+  const captureText = async () => {
+    if (!videoRef.current || !canvasRef.current || status !== 'ready') return;
+    
+    setIsDetecting(true);
+    
+    try {
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      
+      context?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      
+      const result = await detectionManager.detectFromText(canvas);
+      
+      if (result.product) {
+        onProductDetected(result.product);
+        toast.success(`Found: ${result.product.name}`);
+      } else if (result.text) {
+        toast.error(`Recognized: "${result.text.substring(0, 20)}..." but no product match.`);
+      } else {
+        toast.error('No text found in image.');
+      }
+    } catch (error) {
+      console.error('Text detection failed:', error);
+      toast.error('OCR failed');
+    } finally {
+      setIsDetecting(false);
+    }
+  };
   
   const handleRetry = () => {
     detectionManager.stopCamera();
     setRetryCount(prev => prev + 1);
   };
   
-  const handleModeChange = (newMode: 'auto' | 'barcode' | 'photo') => {
+  const handleModeChange = (newMode: 'auto' | 'barcode' | 'photo' | 'text') => {
     setMode(newMode);
-    detectionManager.setMode(newMode);
-    toast.success(`${newMode === 'auto' ? 'Auto' : newMode === 'barcode' ? 'Barcode' : 'Photo'} mode`);
+    if (newMode !== 'text') {
+      detectionManager.setMode(newMode);
+    }
+    toast.success(`${newMode.charAt(0).toUpperCase() + newMode.slice(1)} mode`);
   };
   
   // Loading State
@@ -191,13 +225,25 @@ export const CameraDetection: React.FC<CameraDetectionProps> = ({
         >
           <Camera size={20} />
         </button>
+
+        <button
+          onClick={() => handleModeChange('text')}
+          className={`p-3 rounded-full transition-all ${
+            mode === 'text' 
+              ? 'bg-blue-500 text-white' 
+              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+          }`}
+          title="Text Mode (OCR)"
+        >
+          <Type size={20} />
+        </button>
         
-        {mode === 'photo' && (
+        {(mode === 'photo' || mode === 'text') && (
           <button
-            onClick={capturePhoto}
+            onClick={mode === 'photo' ? capturePhoto : captureText}
             disabled={isDetecting}
             className="p-3 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all disabled:opacity-50"
-            title="Capture Photo"
+            title={mode === 'photo' ? 'Capture Photo' : 'Recognize Text'}
           >
             <ImageIcon size={20} />
           </button>
@@ -209,6 +255,7 @@ export const CameraDetection: React.FC<CameraDetectionProps> = ({
         <div className="bg-black bg-opacity-50 text-white text-xs px-3 py-1.5 rounded-full inline-block backdrop-blur-sm">
           {mode === 'barcode' && '📱 Position barcode in frame'}
           {mode === 'photo' && '🤖 Tap capture to detect product'}
+          {mode === 'text' && '🔍 Tap capture to read product text'}
           {mode === 'auto' && '🔄 Auto-detecting barcode or product'}
         </div>
       </div>
@@ -218,7 +265,9 @@ export const CameraDetection: React.FC<CameraDetectionProps> = ({
         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white rounded-lg p-4 flex items-center space-x-3">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-            <span className="text-gray-700">Detecting...</span>
+            <span className="text-gray-700">
+              {mode === 'text' ? 'Reading text...' : 'Detecting...'}
+            </span>
           </div>
         </div>
       )}

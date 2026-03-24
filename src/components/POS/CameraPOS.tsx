@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, ShoppingCart, X, Plus, Minus, Trash2, Camera, Barcode, Zap } from 'lucide-react';
+import { Search, ShoppingCart, X, Plus, Minus, Trash2, Camera, Barcode, Zap, Type } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePOSStore } from '../../store/usePOSStore';
 import { type Product } from '../../database/db';
@@ -16,7 +16,7 @@ import toast from 'react-hot-toast';
 export default function CameraPOS() {
   const { user } = useAuth();
   const [isCameraActive, setIsCameraActive] = useState(false);
-  const [cameraMode, setCameraMode] = useState<'barcode' | 'photo' | 'auto'>('auto');
+  const [cameraMode, setCameraMode] = useState<'barcode' | 'photo' | 'text' | 'auto'>('auto');
   const [autoOpenManual, setAutoOpenManual] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,7 +50,7 @@ export default function CameraPOS() {
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const openCamera = (mode: 'barcode' | 'photo' | 'auto') => {
+  const openCamera = (mode: 'barcode' | 'photo' | 'text' | 'auto') => {
     setCameraMode(mode);
     setIsCameraActive(true);
   };
@@ -80,12 +80,12 @@ export default function CameraPOS() {
           </button>
           
           <button
-            onClick={() => openCamera('photo')}
+            onClick={() => openCamera('text')}
             className="bg-emerald-600 rounded-2xl p-4 text-white text-left hover:scale-105 transition-transform shadow-lg shadow-emerald-100"
           >
-            <Camera size={24} className="mb-2" />
-            <p className="font-black text-xs uppercase tracking-wider">AI Vision</p>
-            <p className="text-[10px] opacity-70">Detect Photo</p>
+            <Type size={24} className="mb-2" />
+            <p className="font-black text-xs uppercase tracking-wider">Text Detection</p>
+            <p className="text-[10px] opacity-70">Read Labels</p>
           </button>
           
           <button
@@ -115,10 +115,10 @@ export default function CameraPOS() {
         <div className="relative aspect-[4/3] lg:aspect-video bg-black rounded-2xl overflow-hidden shadow-xl border-4 border-white">
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white space-y-4 p-6 text-center">
             <div className="w-20 h-20 bg-indigo-600/20 rounded-full flex items-center justify-center mb-2">
-              <Camera size={40} className="text-indigo-400" />
+              <Type size={40} className="text-indigo-400" />
             </div>
-            <h3 className="text-2xl font-black tracking-tight">AI Vision Scanner</h3>
-            <p className="text-stone-400 text-sm max-w-xs">Scan barcodes or use AI to recognize products instantly. Works completely offline.</p>
+            <h3 className="text-2xl font-black tracking-tight">Text Detection Scanner</h3>
+            <p className="text-stone-400 text-sm max-w-xs">Scan barcodes or use OCR to recognize products instantly. Works completely offline.</p>
             <button 
               onClick={() => openCamera('auto')}
               className="px-10 py-4 bg-indigo-600 hover:bg-indigo-700 rounded-2xl font-black text-lg transition-all transform hover:scale-105 shadow-xl shadow-indigo-200"

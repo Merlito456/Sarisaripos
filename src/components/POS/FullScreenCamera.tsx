@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Camera, Barcode, Zap, RefreshCw, AlertCircle, Check } from 'lucide-react';
+import { X, Camera, Barcode, Zap, RefreshCw, AlertCircle, Check, Type } from 'lucide-react';
 import { detectionManager } from '../../detection/DetectionManager';
 import { Product, MasterProduct, ProductUnit, db } from '../../database/db';
 import { masterProductService } from '../../services/MasterProductService';
@@ -9,11 +9,11 @@ import { toast } from 'react-hot-toast';
 
 interface FullScreenCameraProps {
   isOpen: boolean;
-  mode: 'barcode' | 'photo' | 'auto';
+  mode: 'barcode' | 'photo' | 'text' | 'auto';
   userId: string;
   onClose: () => void;
   onProductDetected: (product: Product) => void;
-  onModeChange?: (mode: 'barcode' | 'photo' | 'auto') => void;
+  onModeChange?: (mode: 'barcode' | 'photo' | 'text' | 'auto') => void;
   autoOpenManual?: boolean;
 }
 
@@ -284,21 +284,32 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
       // Draw current frame
       context?.drawImage(video, 0, 0, canvas.width, canvas.height);
       
-      // Convert to image
-      const image = new Image();
-      image.src = canvas.toDataURL('image/jpeg', 0.9);
-      
-      await new Promise((resolve) => {
-        image.onload = resolve;
-      });
-      
-      // Detect products in photo
-      const detections = await detectionManager.detectFromPhoto(image);
-      
-      if (detections.length > 0 && detections[0].product) {
-        handleProductDetected(detections[0].product);
+      if (mode === 'text') {
+        const result = await detectionManager.detectFromText(canvas);
+        if (result.product) {
+          handleProductDetected(result);
+        } else if (result.text) {
+          toast.error(`Recognized: "${result.text.substring(0, 20)}..." but no product match.`);
+        } else {
+          toast.error('No text found in image.');
+        }
       } else {
-        toast.error('No product detected. Try again with better lighting.');
+        // Convert to image
+        const image = new Image();
+        image.src = canvas.toDataURL('image/jpeg', 0.9);
+        
+        await new Promise((resolve) => {
+          image.onload = resolve;
+        });
+        
+        // Detect products in photo
+        const detections = await detectionManager.detectFromPhoto(image);
+        
+        if (detections.length > 0 && detections[0].product) {
+          handleProductDetected(detections[0].product);
+        } else {
+          toast.error('No product detected. Try again with better lighting.');
+        }
       }
     } catch (error) {
       console.error('Detection failed:', error);
@@ -308,7 +319,7 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
     }
   };
   
-  const handleModeSwitch = (newMode: 'barcode' | 'photo' | 'auto') => {
+  const handleModeSwitch = (newMode: 'barcode' | 'photo' | 'text' | 'auto') => {
     if (onModeChange) {
       onModeChange(newMode);
     }
@@ -400,6 +411,7 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
                 <p className="text-white text-sm">
                   {mode === 'barcode' && '📱 Supports all barcode types (EAN, UPC, QR, etc.)'}
                   {mode === 'photo' && '🤖 Tap camera button to capture product'}
+                  {mode === 'text' && '🔍 Tap camera button to read product text'}
                   {mode === 'auto' && '🔄 Auto-detecting barcode or product'}
                 </p>
               </div>
@@ -479,6 +491,17 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
                   Photo
                 </button>
                 <button
+                  onClick={() => handleModeSwitch('text')}
+                  className={`px-4 py-2 rounded-full transition-all text-sm font-medium ${
+                    mode === 'text' 
+                      ? 'bg-blue-500 text-white' 
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <Type size={18} className="inline mr-2" />
+                  Text
+                </button>
+                <button
                   onClick={() => handleModeSwitch('auto')}
                   className={`px-4 py-2 rounded-full transition-all text-sm font-medium ${
                     mode === 'auto' 
@@ -501,12 +524,12 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
                 <X size={24} />
               </button>
     
-              {/* Capture Button (for Photo Mode) */}
+              {/* Capture Button (for Photo/Text Mode) */}
               <button
                 onClick={captureAndDetect}
                 disabled={isDetecting}
                 className={`w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all ${
-                  mode === 'photo' 
+                  (mode === 'photo' || mode === 'text') 
                     ? 'bg-white hover:bg-gray-100 scale-110' 
                     : 'bg-white/20 text-white/50 cursor-not-allowed'
                 }`}
@@ -514,7 +537,11 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
                 {isDetecting ? (
                   <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
                 ) : (
-                  <Camera size={36} className={mode === 'photo' ? 'text-gray-800' : 'text-white/50'} />
+                  mode === 'text' ? (
+                    <Type size={36} className="text-gray-800" />
+                  ) : (
+                    <Camera size={36} className={mode === 'photo' ? 'text-gray-800' : 'text-white/50'} />
+                  )
                 )}
               </button>
     
@@ -591,12 +618,14 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
         </div>
       )}
       
-      {/* Detection Overlay for Photo Mode */}
-      {mode === 'photo' && isDetecting && (
+      {/* Detection Overlay for Photo/Text Mode */}
+      {(mode === 'photo' || mode === 'text') && isDetecting && (
         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 flex flex-col items-center space-y-4 shadow-2xl">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
-            <span className="text-gray-900 font-bold">Analyzing product...</span>
+            <span className="text-gray-900 font-bold">
+              {mode === 'text' ? 'Reading text...' : 'Analyzing product...'}
+            </span>
           </div>
         </div>
       )}

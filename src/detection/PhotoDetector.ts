@@ -1,39 +1,51 @@
 import * as tf from '@tensorflow/tfjs';
 import * as mobilenet from '@tensorflow-models/mobilenet';
+import * as cocoSsd from '@tensorflow-models/coco-ssd';
 import { Product, db } from '../database/db';
 
 export interface DetectionBox {
   productId: string;
   productName: string;
   confidence: number;
+  bbox?: [number, number, number, number]; // [x, y, width, height]
 }
 
 export class PhotoDetector {
-  private model: mobilenet.MobileNet | null = null;
+  private classificationModel: mobilenet.MobileNet | null = null;
+  private detectionModel: cocoSsd.ObjectDetection | null = null;
   private modelPromise: Promise<void> | null = null;
   private productEmbeddings: Map<string, number[]> = new Map();
   private similarityThreshold: number = 0.65; // Adjustable
   
   constructor() {
-    this.loadModel().catch(err => console.error('Initial model load failed:', err));
+    this.loadModels().catch(err => console.error('Initial model load failed:', err));
     this.loadProductEmbeddings();
   }
   
-  // Load TensorFlow.js model (offline)
-  async loadModel(): Promise<void> {
-    if (this.model) return;
+  // Load TensorFlow.js models (offline)
+  async loadModels(): Promise<void> {
+    if (this.classificationModel && this.detectionModel) return;
     if (this.modelPromise) return this.modelPromise;
     
     this.modelPromise = (async () => {
       try {
-        // Load MobileNet model
-        this.model = await mobilenet.load({
+        // Load MobileNet model for classification/embeddings
+        const mobilenetPromise = mobilenet.load({
           version: 2,
           alpha: 1.0
         });
-        console.log('AI Model loaded successfully');
+
+        // Load COCO-SSD for object detection (finding items in frame)
+        const cocoSsdPromise = cocoSsd.load();
+
+        const [mModel, dModel] = await Promise.all([mobilenetPromise, cocoSsdPromise]);
+        
+        this.classificationModel = mModel;
+        this.detectionModel = dModel;
+        
+        console.log('AI Models (Classification & Detection) loaded successfully');
       } catch (error) {
-        console.error('Failed to load AI model:', error);
+        console.error('Failed to load AI models:', error);
         this.modelPromise = null; // Allow retry
         throw error;
       }
@@ -55,17 +67,56 @@ export class PhotoDetector {
   
   // Detect products from image
   async detectProducts(imageElement: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement): Promise<DetectionBox[]> {
-    if (!this.model) {
-      await this.loadModel();
+    if (!this.classificationModel || !this.detectionModel) {
+      await this.loadModels();
     }
     
-    if (!this.model) {
-      throw new Error('AI Model not loaded');
+    if (!this.classificationModel || !this.detectionModel) {
+      throw new Error('AI Models not loaded');
     }
+
+    // 1. Detect objects in the frame first (ML Kit style)
+    const objects = await this.detectionModel.detect(imageElement);
     
+    // Filter for relevant objects (bottles, cups, bowls, etc.)
+    const relevantObjects = objects.filter(obj => 
+      ['bottle', 'cup', 'bowl', 'food', 'cell phone', 'remote', 'book', 'box'].includes(obj.class) || 
+      obj.score > 0.6
+    );
+
+    if (relevantObjects.length === 0) {
+      // Fallback to whole image if no specific object detected
+      return this.processImageRegion(imageElement);
+    }
+
+    // 2. Process the most confident detected object
+    const bestObject = relevantObjects[0];
+    const [x, y, width, height] = bestObject.bbox;
+
+    // Create a temporary canvas to crop the image
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    
+    if (ctx) {
+      ctx.drawImage(imageElement, x, y, width, height, 0, 0, width, height);
+      const matches = await this.processImageRegion(canvas);
+      
+      // Add bbox info to matches
+      return matches.map(m => ({ ...m, bbox: bestObject.bbox as [number, number, number, number] }));
+    }
+
+    return this.processImageRegion(imageElement);
+  }
+
+  // Internal helper to process a specific image region
+  private async processImageRegion(imageSource: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement | HTMLCanvasElement): Promise<DetectionBox[]> {
+    if (!this.classificationModel) throw new Error('Classification model not ready');
+
     // Get image embeddings from model
-    const imageTensor = tf.browser.fromPixels(imageElement);
-    const embeddings = await this.model.infer(imageTensor, true); // True for embeddings
+    const imageTensor = tf.browser.fromPixels(imageSource);
+    const embeddings = await this.classificationModel.infer(imageTensor, true); // True for embeddings
     const queryEmbedding = await embeddings.data();
     
     // Find similar products
@@ -127,14 +178,14 @@ export class PhotoDetector {
   
   // Train/add new product image to improve detection
   async addProductTrainingData(productId: string, imageData: HTMLImageElement | HTMLCanvasElement | HTMLVideoElement): Promise<void> {
-    if (!this.model) await this.loadModel();
-    if (!this.model) throw new Error('Model not loaded');
+    if (!this.classificationModel) await this.loadModels();
+    if (!this.classificationModel) throw new Error('Model not loaded');
     
     // Convert image to tensor
     const imageTensor = tf.browser.fromPixels(imageData);
     
     // Get embeddings
-    const embeddings = await this.model.infer(imageTensor, true);
+    const embeddings = await this.classificationModel.infer(imageTensor, true);
     const embeddingData = await embeddings.data();
     
     // Store embeddings for the product
@@ -167,6 +218,6 @@ export class PhotoDetector {
   
   // Get model status
   isModelReady(): boolean {
-    return this.model !== null;
+    return this.classificationModel !== null && this.detectionModel !== null;
   }
 }
