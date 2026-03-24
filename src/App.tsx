@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings as SettingsIcon, Menu, X, Crown, LogOut, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
@@ -190,10 +190,18 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative pt-16 lg:pt-0 pb-28 lg:pb-0">
+      <main className="flex-1 overflow-y-auto relative pt-16 lg:pt-0 pb-28 lg:pb-0 bg-white">
         <Toaster position="top-right" />
-        <div className="h-full">
-          {children}
+        <div className="h-full flex flex-col">
+          <div className="bg-indigo-600 text-white text-[10px] p-1 text-center font-bold uppercase tracking-widest z-50">
+            --- Content Start ---
+          </div>
+          <div className="flex-1">
+            {children}
+          </div>
+          <div className="bg-indigo-600 text-white text-[10px] p-1 text-center font-bold uppercase tracking-widest z-50">
+            --- Content End ---
+          </div>
         </div>
       </main>
 
@@ -256,10 +264,12 @@ function AppContent() {
     const info = [
       `User: ${user ? user.email : 'None'}`,
       `Loading: ${isLoading}`,
+      `Path: ${window.location.hash || window.location.pathname}`,
       `Screen: ${window.innerWidth}x${window.innerHeight}`,
-      `UA: ${navigator.userAgent.slice(0, 50)}...`
+      `UA: ${navigator.userAgent.slice(0, 30)}...`
     ].join(' | ');
     setDebugInfo(info);
+    console.log("WebView Debug Info:", info);
   }, [user, isLoading]);
 
   if (isLoading) {
@@ -286,8 +296,8 @@ function AppContent() {
 
   return (
     <Layout onLogout={signOut}>
-      {/* Debug Overlay - Only visible if we need it, but let's keep it subtle */}
-      <div className="fixed top-0 left-0 right-0 z-[9999] pointer-events-none opacity-[0.05] text-[8px] bg-black text-white p-1">
+      {/* Debug Overlay - Visible for troubleshooting */}
+      <div className="fixed top-0 left-0 right-0 z-[9999] pointer-events-none bg-black/80 text-white p-1 text-[10px] font-mono flex justify-center">
         {debugInfo}
       </div>
       

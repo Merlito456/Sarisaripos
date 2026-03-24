@@ -12,6 +12,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requirePremium = false 
 }) => {
   const { user, isLoading, isPremium } = useAuth();
+  console.log("ProtectedRoute check:", { user: !!user, isLoading, isPremium, path: window.location.hash });
 
   if (isLoading) {
     return (
