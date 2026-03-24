@@ -14,10 +14,28 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
+    overscroll-behavior: none;
   }
   body {
     @apply bg-stone-100 text-stone-900;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  
+  /* Optimize all scrollable areas for touch */
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Ensure buttons are responsive */
+  button, a {
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+
+  .will-change-transform {
+    will-change: transform;
   }
 }
 

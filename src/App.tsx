@@ -125,7 +125,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
       </AnimatePresence>
 
       <aside
-        className={`fixed lg:absolute z-50 w-72 h-full bg-white border-r border-stone-200 flex flex-col shadow-2xl lg:shadow-none transition-transform duration-300 transform ${
+        className={`fixed lg:absolute z-50 w-72 h-full bg-white border-r border-stone-200 flex flex-col shadow-2xl lg:shadow-none transition-transform duration-300 transform will-change-transform ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -150,7 +150,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
               key={item.path}
               to={item.path}
               onClick={() => setIsSidebarOpen(false)}
-              className={`flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold transition-all group ${
+              className={`flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold transition-all group active:scale-95 active:bg-stone-50 ${
                 location.pathname === item.path
                   ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100'
                   : 'text-stone-400 hover:bg-stone-50 hover:text-stone-600'
@@ -166,7 +166,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
           <Link
             to="/premium"
             onClick={() => setIsSidebarOpen(false)}
-            className={`flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold transition-all group mt-4 ${
+            className={`flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold transition-all group mt-4 active:scale-95 ${
               location.pathname === '/premium'
                 ? 'bg-amber-500 text-white shadow-xl shadow-amber-100'
                 : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
@@ -195,7 +195,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
 
           <button
             onClick={onLogout}
-            className="w-full flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold text-stone-400 hover:bg-red-50 hover:text-red-600 transition-all group"
+            className="w-full flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold text-stone-400 hover:bg-red-50 hover:text-red-600 transition-all group active:scale-95"
           >
             <LogOut size={20} className="group-hover:text-red-500" />
             <span>Sign Out</span>
@@ -204,7 +204,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
       </aside>
 
       {/* Content Scroll Area */}
-      <div className="absolute top-16 lg:top-0 bottom-20 lg:bottom-0 left-0 lg:left-72 right-0 overflow-y-auto bg-stone-100">
+      <div className="absolute top-16 lg:top-0 bottom-20 lg:bottom-0 left-0 lg:left-72 right-0 overflow-y-auto bg-stone-100 touch-pan-y">
         <Toaster position="top-right" />
         <div className="min-h-full flex flex-col bg-white">
           <div className="flex-1 p-4 relative z-10">
@@ -219,7 +219,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
           <Link
             key={item.path}
             to={item.path}
-            className={`flex flex-col items-center justify-center w-16 py-1 rounded-xl transition-all ${
+            className={`flex flex-col items-center justify-center w-16 py-1 rounded-xl transition-all active:scale-90 active:bg-stone-50 ${
               location.pathname === item.path
                 ? 'text-indigo-600 bg-indigo-50'
                 : 'text-stone-400'
