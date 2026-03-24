@@ -671,7 +671,7 @@ export const Settings: React.FC = () => {
                     <select
                       value={settings.preferences.dateFormat}
                       onChange={(e) => updateSettings({
-                        preferences: { ...settings.preferences, dateFormat: e.target.value }
+                        preferences: { ...settings.preferences, dateFormat: e.target.value as any }
                       })}
                       className="w-full px-4 py-3 bg-stone-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold"
                     >

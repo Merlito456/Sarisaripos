@@ -35,6 +35,11 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* EMERGENCY RENDER TEST */}
+      <div className="bg-red-600 text-white p-4 text-center font-black uppercase tracking-[0.2em] text-xs sticky top-0 z-[60] shadow-xl">
+        !!! DASHBOARD COMPONENT RENDERED !!!
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">

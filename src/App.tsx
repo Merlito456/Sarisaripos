@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ErrorInfo, ReactNode } from 'react';
+import React, { useState, useEffect, ErrorInfo, ReactNode, Component } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings as SettingsIcon, Menu, X, Crown, LogOut, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
@@ -26,11 +26,10 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends React.Component<any, any> {
-  public state: any = { hasError: false, error: null };
-
-  constructor(props: any) {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
+    this.state = { hasError: false, error: null };
   }
 
   static getDerivedStateFromError(error: Error) {
@@ -99,6 +98,12 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
           </div>
           <h1 className="text-lg font-black tracking-tighter uppercase text-indigo-900">Sari-Sari <span className="text-indigo-600">POS</span></h1>
         </div>
+        
+        {/* EMERGENCY MARKER */}
+        <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded-full font-bold animate-pulse">
+          LAYOUT_ACTIVE
+        </div>
+
         <button 
           onClick={() => setIsSidebarOpen(true)}
           className="p-2 hover:bg-stone-100 rounded-xl text-stone-600"
@@ -202,14 +207,14 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-y-auto relative pt-16 lg:pt-0 pb-28 lg:pb-0 bg-white min-h-0">
         <Toaster position="top-right" />
-        <div className="flex-1 flex flex-col min-h-full">
-          <div className="bg-indigo-600 text-white text-[12px] p-2 text-center font-black uppercase tracking-widest z-50 border-b-4 border-indigo-800">
+        <div className="flex-1 flex flex-col min-h-full relative">
+          <div className="relative bg-indigo-600 text-white text-[12px] p-4 text-center font-black uppercase tracking-widest z-50 border-b-4 border-indigo-800 shadow-lg">
             --- CONTENT AREA START ---
           </div>
-          <div className="flex-1 bg-stone-50 p-4">
+          <div className="flex-1 bg-stone-50 p-4 relative z-10">
             {children}
           </div>
-          <div className="bg-indigo-600 text-white text-[12px] p-2 text-center font-black uppercase tracking-widest z-50 border-t-4 border-indigo-800">
+          <div className="relative bg-indigo-600 text-white text-[12px] p-4 text-center font-black uppercase tracking-widest z-50 border-t-4 border-indigo-800 shadow-lg">
             --- CONTENT AREA END ---
           </div>
         </div>
@@ -310,6 +315,26 @@ function AppContent() {
     setDebugInfo(info);
   }, [user, isLoading, location]);
 
+  useEffect(() => {
+    const logDimensions = () => {
+      const info = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        outerWidth: window.outerWidth,
+        outerHeight: window.outerHeight,
+        devicePixelRatio: window.devicePixelRatio,
+        userAgent: navigator.userAgent,
+        href: window.location.href,
+        hash: window.location.hash
+      };
+      console.log("DEBUG DIMENSIONS: " + JSON.stringify(info));
+    };
+
+    logDimensions();
+    window.addEventListener('resize', logDimensions);
+    return () => window.removeEventListener('resize', logDimensions);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="h-full w-full flex items-center justify-center bg-stone-100">
@@ -335,36 +360,52 @@ function AppContent() {
   return (
       <Layout onLogout={signOut}>
         {/* Debug Overlay - Visible for troubleshooting */}
-        <div className="fixed top-0 left-0 right-0 z-[9999] pointer-events-none bg-black/90 text-white p-1 text-[9px] font-mono">
-          <div className="flex justify-between items-center border-b border-white/20 pb-1 mb-1 px-2">
-            <span>{debugInfo}</span>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="pointer-events-auto bg-red-600 px-2 py-0.5 rounded font-black uppercase text-[8px]"
-            >
-              Reload
-            </button>
+        <div className="fixed top-0 left-0 right-0 z-[9999] bg-black/90 text-white p-2 text-[10px] font-mono max-h-[40vh] overflow-y-auto pointer-events-auto border-b-2 border-yellow-500">
+          <div className="flex justify-between items-center mb-2 border-b border-white/20 pb-1">
+            <span className="font-bold text-yellow-400 uppercase tracking-widest">Debug Console v4</span>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => window.location.reload()} 
+                className="bg-blue-600 px-2 py-0.5 rounded text-[9px] font-bold active:bg-blue-800"
+              >
+                RELOAD
+              </button>
+              <button 
+                onClick={() => setLogs([])} 
+                className="bg-red-600 px-2 py-0.5 rounded text-[9px] font-bold active:bg-red-800"
+              >
+                CLEAR
+              </button>
+            </div>
           </div>
-          <div className="max-h-24 overflow-hidden opacity-80 px-2">
-            {logs.map((log, i) => (
-              <div key={i} className="truncate border-l-2 border-indigo-500 pl-1 mb-0.5">{log}</div>
-            ))}
+          <div className="space-y-1">
+            <div className="text-blue-300">User: {user ? 'Logged In' : 'Logged Out'}</div>
+            <div className="text-blue-300">Loading: {isLoading ? 'True' : 'False'}</div>
+            <div className="text-blue-300">Path: {location.pathname}{location.hash}</div>
+            <div className="text-blue-300">Size: {window.innerWidth}x{window.innerHeight}</div>
+            <div className="mt-2 pt-1 border-t border-white/10">
+              {logs.slice(-15).map((log, i) => (
+                <div key={i} className="break-all border-b border-white/5 py-0.5">
+                  <span className="text-gray-500">[{i}]</span> {log}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
         
         <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/pos" element={<ProtectedRoute><CameraPOS /></ProtectedRoute>} />
-        <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
-        <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
-        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-        <Route path="/premium" element={<Premium />} />
-        <Route path="/test" element={<div className="p-10 bg-green-500 text-white font-bold">TEST PAGE WORKING</div>} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </Layout>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/pos" element={<ProtectedRoute><CameraPOS /></ProtectedRoute>} />
+          <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+          <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
+          <Route path="/test-render" element={<div className="bg-red-500 text-white p-20 text-center font-black text-4xl">RENDER SUCCESSFUL</div>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Layout>
   );
 }
 
