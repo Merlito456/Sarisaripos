@@ -93,7 +93,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
   ];
 
   return (
-    <div className="fixed inset-0 bg-stone-100 font-sans text-stone-900 overflow-hidden border-4 border-red-500">
+    <div className="fixed inset-0 bg-stone-100 font-sans text-stone-900 overflow-hidden">
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 h-16 z-40 bg-white border-b border-stone-200 px-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center space-x-2">
@@ -102,17 +102,6 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
           </div>
           <h1 className="text-lg font-black tracking-tighter uppercase text-indigo-900">Sari-Sari <span className="text-indigo-600">POS</span></h1>
         </div>
-        
-        <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded-full font-bold animate-pulse">
-          LAYOUT_ACTIVE_V2
-        </div>
-
-        <button 
-          onClick={() => console.log("TEST BUTTON CLICKED AT " + new Date().toLocaleTimeString())}
-          className="bg-yellow-400 text-black px-2 py-1 rounded text-[10px] font-black active:bg-yellow-600"
-        >
-          TEST
-        </button>
 
         <button 
           onClick={() => setIsSidebarOpen(true)}
@@ -123,12 +112,17 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
       </header>
 
       {/* Sidebar (Desktop & Mobile Overlay) */}
-      {isSidebarOpen && (
-        <div
-          onClick={() => setIsSidebarOpen(false)}
-          className="fixed inset-0 bg-black/50 z-50 lg:hidden backdrop-blur-sm"
-        />
-      )}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/50 z-50 lg:hidden backdrop-blur-sm"
+          />
+        )}
+      </AnimatePresence>
 
       <aside
         className={`fixed lg:absolute z-50 w-72 h-full bg-white border-r border-stone-200 flex flex-col shadow-2xl lg:shadow-none transition-transform duration-300 transform ${
@@ -210,17 +204,11 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
       </aside>
 
       {/* Content Scroll Area */}
-      <div className="absolute top-16 lg:top-0 bottom-20 lg:bottom-0 left-0 lg:left-72 right-0 overflow-y-auto bg-yellow-200">
+      <div className="absolute top-16 lg:top-0 bottom-20 lg:bottom-0 left-0 lg:left-72 right-0 overflow-y-auto bg-stone-100">
         <Toaster position="top-right" />
-        <div className="min-h-full flex flex-col bg-blue-100">
-          <div className="relative bg-indigo-600 text-white text-[12px] p-4 text-center font-black uppercase tracking-widest z-50 border-b-4 border-indigo-800 shadow-lg">
-            --- CONTENT AREA START V2 ---
-          </div>
-          <div className="flex-1 bg-green-100 p-4 relative z-10 border-2 border-dashed border-green-500">
+        <div className="min-h-full flex flex-col bg-white">
+          <div className="flex-1 p-4 relative z-10">
             {children}
-          </div>
-          <div className="relative bg-indigo-600 text-white text-[12px] p-4 text-center font-black uppercase tracking-widest z-50 border-t-4 border-indigo-800 shadow-lg">
-            --- CONTENT AREA END V2 ---
           </div>
         </div>
       </div>
@@ -237,7 +225,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
                 : 'text-stone-400'
             }`}
           >
-            <div>
+            <div className={location.pathname === item.path ? 'scale-110' : ''}>
               {item.icon}
             </div>
             <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">{item.label}</span>
@@ -374,55 +362,20 @@ function AppContent() {
   }
 
   return (
-    <>
-      {/* Debug Overlay - NOW OUTSIDE LAYOUT */}
-      <div className="fixed top-0 left-0 right-0 z-[9999] bg-black/95 text-white p-2 text-[10px] font-mono max-h-[50vh] overflow-y-auto pointer-events-auto border-b-4 border-yellow-500 shadow-2xl">
-        <div className="flex justify-between items-center mb-2 border-b border-white/20 pb-1">
-          <span className="font-bold text-yellow-400 uppercase tracking-widest">Debug Console v5</span>
-          <div className="flex gap-2">
-            <button 
-              onClick={() => window.location.reload()} 
-              className="bg-blue-600 px-3 py-1 rounded text-[10px] font-black active:bg-blue-800 shadow-md"
-            >
-              RELOAD
-            </button>
-            <button 
-              onClick={() => setLogs([])} 
-              className="bg-red-600 px-3 py-1 rounded text-[10px] font-black active:bg-red-800 shadow-md"
-            >
-              CLEAR
-            </button>
-          </div>
-        </div>
-        <div className="space-y-1">
-          <div className="text-blue-300 font-bold">User: {user ? user.email : 'Logged Out'}</div>
-          <div className="text-blue-300 font-bold">Path: {location.pathname}{location.hash}</div>
-          <div className="text-blue-300 font-bold">Viewport: {window.innerWidth}x{window.innerHeight}</div>
-          <div className="mt-2 pt-1 border-t border-white/20">
-            {logs.map((log, i) => (
-              <div key={i} className="break-all border-b border-white/5 py-1 leading-tight">
-                <span className="text-gray-500">[{logs.length - 1 - i}]</span> {log}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <Layout onLogout={signOut}>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/pos" element={<ProtectedRoute><CameraPOS /></ProtectedRoute>} />
-          <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
-          <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
-          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-          <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
-          <Route path="/test-render" element={<div className="bg-red-500 text-white p-20 text-center font-black text-4xl">RENDER SUCCESSFUL</div>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Layout>
-    </>
+    <Layout onLogout={signOut}>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/pos" element={<ProtectedRoute><CameraPOS /></ProtectedRoute>} />
+        <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+        <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
+        <Route path="/test-render" element={<div className="bg-red-500 text-white p-20 text-center font-black text-4xl">RENDER SUCCESSFUL</div>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Layout>
   );
 }
 
