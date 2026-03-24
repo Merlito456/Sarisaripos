@@ -101,7 +101,7 @@ export const Premium: React.FC = () => {
           <div className="bg-white rounded-2xl p-1.5 shadow-sm border border-stone-200 flex">
             <button
               onClick={() => setBillingInterval('month')}
-              className={`px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 ${
+              className={`px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:bg-stone-100 ${
                 billingInterval === 'month'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
                   : 'text-stone-400 hover:text-stone-600'
@@ -111,7 +111,7 @@ export const Premium: React.FC = () => {
             </button>
             <button
               onClick={() => setBillingInterval('year')}
-              className={`px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all flex items-center active:scale-95 ${
+              className={`px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all flex items-center active:bg-stone-100 ${
                 billingInterval === 'year'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
                   : 'text-stone-400 hover:text-stone-600'
@@ -197,7 +197,7 @@ export const Premium: React.FC = () => {
                       handlePayMongo();
                     }}
                     disabled={isCurrentPlan(planId)}
-                    className={`mt-10 w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all transform active:scale-95 ${
+                    className={`mt-10 w-full py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all transform active:bg-opacity-90 ${
                       isCurrentPlan(planId)
                         ? 'bg-stone-100 text-stone-400 cursor-not-allowed'
                         : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100'

@@ -50,7 +50,7 @@ export const Customers: React.FC = () => {
         </div>
         <button
           onClick={() => setIsFormOpen(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl flex items-center justify-center space-x-2 transition-all shadow-lg shadow-indigo-100 font-black uppercase tracking-widest active:scale-95"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl flex items-center justify-center space-x-2 transition-all shadow-lg shadow-indigo-100 font-black uppercase tracking-widest active:bg-indigo-700"
         >
           <Plus size={20} />
           <span>Add Customer</span>
@@ -75,7 +75,7 @@ export const Customers: React.FC = () => {
           </div>
           <button
             onClick={() => setIsReportOpen(true)}
-            className="px-6 py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-stone-100 active:scale-95"
+            className="px-6 py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-stone-100 active:bg-stone-800"
           >
             Utang Report
           </button>

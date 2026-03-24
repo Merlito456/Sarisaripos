@@ -48,14 +48,14 @@ export const Reports: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => loadReports()}
-              className="p-3 bg-white border border-stone-200 rounded-2xl hover:bg-stone-50 transition-all shadow-sm active:scale-95"
+              className="p-3 bg-white border border-stone-200 rounded-2xl hover:bg-stone-50 transition-all shadow-sm active:bg-stone-100"
               title="Refresh"
             >
               <RefreshCw size={20} className="text-stone-600" />
             </button>
             <button
               onClick={() => exportCurrentReport('csv')}
-              className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl transition-all shadow-lg shadow-emerald-100 font-black uppercase tracking-widest active:scale-95"
+              className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl transition-all shadow-lg shadow-emerald-100 font-black uppercase tracking-widest active:bg-emerald-700"
             >
               <Download size={20} />
               <span className="hidden sm:inline">Export</span>

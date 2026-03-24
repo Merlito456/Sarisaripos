@@ -304,7 +304,7 @@ export default function CameraPOS() {
             <button
               disabled={cart.length === 0 || isProcessing}
               onClick={() => checkout('cash', total)}
-              className={`col-span-2 py-5 rounded-2xl font-black text-xl shadow-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 ${
+              className={`col-span-2 py-5 rounded-2xl font-black text-xl shadow-xl transition-all transform active:opacity-90 flex items-center justify-center gap-2 ${
                 cart.length === 0 || isProcessing
                   ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
                   : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200'
@@ -315,14 +315,14 @@ export default function CameraPOS() {
             <button 
               onClick={() => checkout('gcash', total)}
               disabled={cart.length === 0 || isProcessing}
-              className="py-4 bg-blue-500 text-white rounded-2xl font-black text-sm shadow-lg hover:bg-blue-600 transition-all disabled:opacity-50 active:scale-95"
+              className="py-4 bg-blue-500 text-white rounded-2xl font-black text-sm shadow-lg hover:bg-blue-600 transition-all disabled:opacity-50 active:bg-blue-600"
             >
               GCASH
             </button>
             <button 
               onClick={() => checkout('credit', total)}
               disabled={cart.length === 0 || isProcessing}
-              className="py-4 bg-red-500 text-white rounded-2xl font-black text-sm shadow-lg hover:bg-red-600 transition-all disabled:opacity-50 active:scale-95"
+              className="py-4 bg-red-500 text-white rounded-2xl font-black text-sm shadow-lg hover:bg-red-600 transition-all disabled:opacity-50 active:bg-red-600"
             >
               UTANG
             </button>

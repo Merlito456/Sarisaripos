@@ -84,12 +84,12 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
   }, []);
 
   const navItems = [
-    { path: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Home' },
-    { path: '/pos', icon: <ShoppingCart size={20} />, label: 'POS' },
-    { path: '/inventory', icon: <Package size={20} />, label: 'Stock' },
-    { path: '/customers', icon: <Users size={20} />, label: 'Suki' },
-    { path: '/reports', icon: <BarChart3 size={20} />, label: 'Stats' },
-    { path: '/settings', icon: <SettingsIcon size={20} />, label: 'Set' },
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Home' },
+    { path: '/pos', icon: ShoppingCart, label: 'POS' },
+    { path: '/inventory', icon: Package, label: 'Stock' },
+    { path: '/customers', icon: Users, label: 'Suki' },
+    { path: '/reports', icon: BarChart3, label: 'Stats' },
+    { path: '/settings', icon: SettingsIcon, label: 'Set' },
   ];
 
   return (

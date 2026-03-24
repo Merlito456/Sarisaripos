@@ -102,7 +102,7 @@ export const Settings: React.FC = () => {
           </div>
           <button
             onClick={() => toast.success('Settings saved automatically')}
-            className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center space-x-2 hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all transform active:scale-95"
+            className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center justify-center space-x-2 hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all transform active:bg-indigo-700"
           >
             <Save size={20} />
             <span>Save Changes</span>
@@ -812,7 +812,7 @@ export const Settings: React.FC = () => {
                   </div>
                   <Link 
                     to="/premium" 
-                    className="w-full md:w-auto bg-amber-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center space-x-2 hover:bg-amber-600 shadow-lg shadow-amber-100 transition-all transform active:scale-95"
+                    className="w-full md:w-auto bg-amber-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center space-x-2 hover:bg-amber-600 shadow-lg shadow-amber-100 transition-all transform active:bg-amber-600"
                   >
                     <Crown size={18} />
                     <span>Upgrade to Pro</span>

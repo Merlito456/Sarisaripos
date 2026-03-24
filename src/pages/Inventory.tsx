@@ -128,7 +128,7 @@ export default function Inventory() {
             <button 
               onClick={handleBackup}
               disabled={isBackingUp}
-              className="flex items-center justify-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg hover:bg-emerald-700 transition-all transform active:scale-95 disabled:opacity-50"
+              className="flex items-center justify-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg hover:bg-emerald-700 transition-all transform active:bg-emerald-700 disabled:opacity-50"
             >
               <CloudUpload size={20} className={isBackingUp ? 'animate-bounce' : ''} />
               <span>{isBackingUp ? 'Backing up...' : 'Backup to Cloud'}</span>
@@ -136,7 +136,7 @@ export default function Inventory() {
           )}
           <button 
             onClick={handleAddProduct}
-            className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all transform active:scale-95"
+            className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all transform active:bg-indigo-700"
           >
             <Plus size={20} />
             <span>Add New Product</span>
