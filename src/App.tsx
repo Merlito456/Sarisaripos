@@ -80,7 +80,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
   ];
 
   return (
-    <div className="flex h-screen bg-stone-100 font-sans text-stone-900 overflow-hidden">
+    <div className="flex h-full bg-stone-100 font-sans text-stone-900 overflow-hidden">
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-stone-200 px-4 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center space-x-2">
@@ -222,14 +222,45 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
 
 function AppContent() {
   const { user, isLoading, signOut } = useAuth();
+  const [debugInfo, setDebugInfo] = useState<string>("");
 
   useEffect(() => {
+    document.title = 'Sari-Sari POS';
+    
+    const initDb = async () => {
+      try {
+        await seedDatabase();
+        // Ensure master database is seeded if empty
+        const { masterProductService } = await import('./services/MasterProductService');
+        const count = await masterProductService.getLocalCount();
+        if (count === 0) {
+          console.log('Master database empty, seeding from local JSON...');
+          await masterProductService.seedFromLocalJson();
+        }
+      } catch (err) {
+        console.error("Database initialization failed:", err);
+        // We don't throw here to avoid crashing the whole app, 
+        // but the ErrorBoundary should catch it if it's a fatal React error.
+      }
+    };
+
+    initDb();
+    
     if (user) {
       import('./detection/DetectionManager').then(({ detectionManager }) => {
         detectionManager.setUserId(user.id);
       });
     }
-  }, [user]);
+    
+    // Debug info for WebView
+    const info = [
+      `User: ${user ? user.email : 'None'}`,
+      `Loading: ${isLoading}`,
+      `Screen: ${window.innerWidth}x${window.innerHeight}`,
+      `UA: ${navigator.userAgent.slice(0, 50)}...`
+    ].join(' | ');
+    setDebugInfo(info);
+  }, [user, isLoading]);
 
   if (isLoading) {
     return (
@@ -253,13 +284,13 @@ function AppContent() {
     );
   }
 
-  // Set user ID for detection manager
-  import('./detection/DetectionManager').then(({ detectionManager }) => {
-    detectionManager.setUserId(user.id);
-  });
-
   return (
     <Layout onLogout={signOut}>
+      {/* Debug Overlay - Only visible if we need it, but let's keep it subtle */}
+      <div className="fixed top-0 left-0 right-0 z-[9999] pointer-events-none opacity-[0.05] text-[8px] bg-black text-white p-1">
+        {debugInfo}
+      </div>
+      
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -276,20 +307,6 @@ function AppContent() {
 }
 
 export default function App() {
-  useEffect(() => {
-    document.title = 'Sari-Sari POS';
-    seedDatabase();
-    // Ensure master database is seeded if empty
-    import('./services/MasterProductService').then(({ masterProductService }) => {
-      masterProductService.getLocalCount().then(count => {
-        if (count === 0) {
-          console.log('Master database empty, seeding from local JSON...');
-          masterProductService.seedFromLocalJson();
-        }
-      });
-    });
-  }, []);
-
   return (
     <Router>
       <ErrorBoundary>
