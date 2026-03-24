@@ -190,13 +190,13 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative pt-16 lg:pt-0 pb-28 lg:pb-0 bg-white">
+      <main className="flex-1 overflow-y-auto relative pt-16 lg:pt-0 pb-28 lg:pb-0 bg-white min-h-0">
         <Toaster position="top-right" />
-        <div className="h-full flex flex-col">
+        <div className="min-h-full flex flex-col">
           <div className="bg-indigo-600 text-white text-[10px] p-1 text-center font-bold uppercase tracking-widest z-50">
             --- Content Start ---
           </div>
-          <div className="flex-1">
+          <div className="flex-1 bg-stone-50">
             {children}
           </div>
           <div className="bg-indigo-600 text-white text-[10px] p-1 text-center font-bold uppercase tracking-widest z-50">
@@ -231,24 +231,50 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
 function AppContent() {
   const { user, isLoading, signOut } = useAuth();
   const [debugInfo, setDebugInfo] = useState<string>("");
+  const [logs, setLogs] = useState<string[]>([]);
+
+  // Global log function for debugging
+  useEffect(() => {
+    const originalLog = console.log;
+    const originalError = console.error;
+    
+    const addLog = (msg: string, type: 'log' | 'error' = 'log') => {
+      setLogs(prev => [msg.slice(0, 100), ...prev].slice(0, 10));
+    };
+
+    console.log = (...args) => {
+      addLog(args.map(String).join(' '));
+      originalLog(...args);
+    };
+    console.error = (...args) => {
+      addLog(args.map(String).join(' '), 'error');
+      originalError(...args);
+    };
+
+    return () => {
+      console.log = originalLog;
+      console.error = originalError;
+    };
+  }, []);
 
   useEffect(() => {
     document.title = 'Sari-Sari POS';
     
     const initDb = async () => {
+      console.log("Starting DB Init...");
       try {
         await seedDatabase();
-        // Ensure master database is seeded if empty
+        console.log("DB Seeded");
         const { masterProductService } = await import('./services/MasterProductService');
         const count = await masterProductService.getLocalCount();
+        console.log("Master count:", count);
         if (count === 0) {
-          console.log('Master database empty, seeding from local JSON...');
+          console.log('Seeding master products...');
           await masterProductService.seedFromLocalJson();
+          console.log('Master seeded');
         }
       } catch (err) {
-        console.error("Database initialization failed:", err);
-        // We don't throw here to avoid crashing the whole app, 
-        // but the ErrorBoundary should catch it if it's a fatal React error.
+        console.error("DB Error:", err);
       }
     };
 
@@ -262,24 +288,22 @@ function AppContent() {
     
     // Debug info for WebView
     const info = [
-      `User: ${user ? user.email : 'None'}`,
+      `User: ${user ? 'Logged In' : 'None'}`,
       `Loading: ${isLoading}`,
-      `Path: ${window.location.hash || window.location.pathname}`,
-      `Screen: ${window.innerWidth}x${window.innerHeight}`,
-      `UA: ${navigator.userAgent.slice(0, 30)}...`
+      `Path: ${window.location.hash || '/'}`,
+      `Size: ${window.innerWidth}x${window.innerHeight}`
     ].join(' | ');
     setDebugInfo(info);
-    console.log("WebView Debug Info:", info);
   }, [user, isLoading]);
 
   if (isLoading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-stone-100">
+      <div className="h-full w-full flex items-center justify-center bg-stone-100">
         <div className="flex flex-col items-center space-y-4">
           <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white animate-bounce">
             <ShoppingCart size={24} />
           </div>
-          <div className="text-indigo-900 font-black tracking-tighter uppercase">Loading Sari-Sari POS...</div>
+          <div className="text-indigo-900 font-black tracking-tighter uppercase">Loading...</div>
         </div>
       </div>
     );
@@ -297,8 +321,13 @@ function AppContent() {
   return (
     <Layout onLogout={signOut}>
       {/* Debug Overlay - Visible for troubleshooting */}
-      <div className="fixed top-0 left-0 right-0 z-[9999] pointer-events-none bg-black/80 text-white p-1 text-[10px] font-mono flex justify-center">
-        {debugInfo}
+      <div className="fixed top-0 left-0 right-0 z-[9999] pointer-events-none bg-black/90 text-white p-1 text-[9px] font-mono">
+        <div className="flex justify-center border-b border-white/20 pb-1 mb-1">{debugInfo}</div>
+        <div className="max-h-20 overflow-hidden opacity-80">
+          {logs.map((log, i) => (
+            <div key={i} className="truncate border-l-2 border-indigo-500 pl-1 mb-0.5">{log}</div>
+          ))}
+        </div>
       </div>
       
       <Routes>
@@ -310,6 +339,7 @@ function AppContent() {
         <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/premium" element={<Premium />} />
+        <Route path="/test" element={<div className="p-10 bg-green-500 text-white font-bold">TEST PAGE WORKING</div>} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Layout>
