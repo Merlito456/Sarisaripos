@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings as SettingsIcon, Menu, X, Crown, LogOut } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Users, BarChart3, Settings as SettingsIcon, Menu, X, Crown, LogOut, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -16,6 +16,54 @@ import { seedDatabase } from './database/db';
 import { useSettingsStore } from './store/useSettingsStore';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-red-50 flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 border border-red-100">
+            <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center text-red-600 mb-6 mx-auto">
+              <AlertTriangle size={32} />
+            </div>
+            <h1 className="text-2xl font-black text-red-900 text-center mb-2 tracking-tighter uppercase">App Crashed</h1>
+            <p className="text-red-600 text-center mb-6 font-medium">Something went wrong while loading the page.</p>
+            
+            <div className="bg-stone-50 rounded-2xl p-4 mb-6 border border-stone-200 overflow-hidden">
+              <div className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Error Message</div>
+              <div className="text-xs font-mono text-stone-600 break-words">
+                {this.state.error?.message || "Unknown Error"}
+              </div>
+            </div>
+
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
+            >
+              <RefreshCw size={20} />
+              <span>Reload App</span>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: () => void }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -244,9 +292,11 @@ export default function App() {
 
   return (
     <Router>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ErrorBoundary>
     </Router>
   );
 }
