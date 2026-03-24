@@ -70,7 +70,7 @@ export const Reports: React.FC = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex-1 min-w-[80px] sm:min-w-0 flex items-center justify-center space-x-2 py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95 ${
+            className={`flex-1 min-w-[80px] sm:min-w-0 flex items-center justify-center space-x-2 py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:bg-stone-50 ${
               activeTab === tab.id
                 ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100'
                 : 'text-stone-400 hover:bg-stone-50 hover:text-stone-600'

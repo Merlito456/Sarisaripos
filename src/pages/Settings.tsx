@@ -116,7 +116,7 @@ export const Settings: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
-                className={`flex flex-col items-center justify-center space-y-2 px-2 py-4 rounded-2xl transition-all font-bold uppercase tracking-wider text-[9px] lg:text-[10px] text-center active:scale-95 ${
+                className={`flex flex-col items-center justify-center space-y-2 px-2 py-4 rounded-2xl transition-all font-bold uppercase tracking-wider text-[9px] lg:text-[10px] text-center active:bg-stone-50 ${
                   activeTab === tab.id
                     ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100'
                     : 'bg-white text-stone-500 hover:bg-stone-100 hover:text-stone-900 border border-stone-200'

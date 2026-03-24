@@ -102,7 +102,7 @@ export default function Dashboard() {
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {stats.map((stat, index) => (
-            <div key={index} className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 active:scale-95 transition-transform">
+            <div key={index} className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 active:bg-gray-50 transition-transform">
               <div className="flex items-center justify-between mb-3">
                 <div className={`${stat.color} p-2.5 rounded-xl shadow-lg shadow-gray-100`}>
                   <stat.icon size={20} className="text-white" />
@@ -122,7 +122,7 @@ export default function Dashboard() {
               <Link
                 key={index}
                 to={action.path}
-                className={`${action.color} text-white rounded-2xl p-6 text-center hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-gray-100`}
+                className={`${action.color} text-white rounded-2xl p-6 text-center hover:scale-[1.02] active:bg-opacity-90 transition-all shadow-lg shadow-gray-100`}
               >
                 <div className="text-3xl mb-2">{action.icon}</div>
                 <span className="text-xs font-black uppercase tracking-widest">{action.title}</span>

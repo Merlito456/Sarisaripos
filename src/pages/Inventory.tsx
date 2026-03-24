@@ -159,13 +159,13 @@ export default function Inventory() {
         <div className="flex space-x-2">
           <button 
             onClick={() => setFilter('all')}
-            className={`flex-1 py-3 rounded-2xl font-bold transition-all active:scale-95 ${filter === 'all' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-stone-600 hover:bg-stone-100'}`}
+            className={`flex-1 py-3 rounded-2xl font-bold transition-all active:bg-stone-50 ${filter === 'all' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-stone-600 hover:bg-stone-100'}`}
           >
             All Items
           </button>
           <button 
             onClick={() => setFilter('low')}
-            className={`flex-1 py-3 rounded-2xl font-bold transition-all flex items-center justify-center space-x-2 active:scale-95 ${filter === 'low' ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-stone-600 hover:bg-stone-100'}`}
+            className={`flex-1 py-3 rounded-2xl font-bold transition-all flex items-center justify-center space-x-2 active:bg-stone-50 ${filter === 'low' ? 'bg-amber-500 text-white shadow-md' : 'bg-white text-stone-600 hover:bg-stone-100'}`}
           >
             <AlertCircle size={18} />
             <span>Low Stock</span>
@@ -265,13 +265,13 @@ export default function Inventory() {
                 <div className="flex space-x-1">
                   <button 
                     onClick={() => handleEditProduct(product)}
-                    className="p-2 bg-stone-50 text-stone-400 rounded-xl active:scale-90 active:bg-stone-100"
+                    className="p-2 bg-stone-50 text-stone-400 rounded-xl active:bg-stone-100"
                   >
                     <Edit2 size={16} />
                   </button>
                   <button 
                     onClick={() => handleDeleteProduct(product.id!)}
-                    className="p-2 bg-stone-50 text-red-400 rounded-xl active:scale-90 active:bg-red-50"
+                    className="p-2 bg-stone-50 text-red-400 rounded-xl active:bg-red-50"
                   >
                     <Trash2 size={16} />
                   </button>
