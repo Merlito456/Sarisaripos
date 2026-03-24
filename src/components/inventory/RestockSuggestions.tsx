@@ -32,25 +32,39 @@ export const RestockSuggestions: React.FC = () => {
         .above(startDate)
         .toArray();
 
+      if (transactions.length === 0) {
+        setSuggestions([]);
+        return;
+      }
+
+      // Get all transaction items for these transactions in one go
+      const transactionIds = transactions.map(tx => tx.id).filter((id): id is string => !!id);
+      const allItems = await db.transactionItems
+        .where('transactionId')
+        .anyOf(transactionIds)
+        .toArray();
+
       // Aggregate sales by product
       const salesMap = new Map<string, { quantity: number; revenue: number; lastDate: Date }>();
+      
+      // Create a map for quick timestamp lookup
+      const txTimestampMap = new Map(transactions.map(tx => [tx.id, tx.timestamp]));
 
-      for (const tx of transactions) {
-        if (!tx.id) continue;
-        const items = await db.transactionItems.where('transactionId').equals(tx.id).toArray();
-        for (const item of items) {
-          const existing = salesMap.get(item.productId);
-          if (existing) {
-            existing.quantity += item.quantity;
-            existing.revenue += item.subtotal;
-            if (tx.timestamp > existing.lastDate) existing.lastDate = tx.timestamp;
-          } else {
-            salesMap.set(item.productId, {
-              quantity: item.quantity,
-              revenue: item.subtotal,
-              lastDate: tx.timestamp,
-            });
-          }
+      for (const item of allItems) {
+        const timestamp = txTimestampMap.get(item.transactionId);
+        if (!timestamp) continue;
+
+        const existing = salesMap.get(item.productId);
+        if (existing) {
+          existing.quantity += item.quantity;
+          existing.revenue += item.subtotal;
+          if (timestamp > existing.lastDate) existing.lastDate = timestamp;
+        } else {
+          salesMap.set(item.productId, {
+            quantity: item.quantity,
+            revenue: item.subtotal,
+            lastDate: timestamp,
+          });
         }
       }
 

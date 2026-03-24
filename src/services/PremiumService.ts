@@ -4,7 +4,16 @@ import { getSupabase, isSupabaseConfigured } from '../lib/supabase';
 import { db } from '../database/db';
 
 class PremiumService {
+  private cachedStatus: PremiumStatus | null = null;
+  private lastFetchTime: number = 0;
+  private CACHE_DURATION = 1000 * 60 * 5; // 5 minutes
+
   async getPremiumStatus(userId?: string): Promise<PremiumStatus> {
+    // Return cached status if valid and not expired
+    if (this.cachedStatus && !userId && (Date.now() - this.lastFetchTime < this.CACHE_DURATION)) {
+      return this.cachedStatus;
+    }
+
     try {
       const supabase = getSupabase();
       let subscription: Subscription | null = null;
@@ -52,7 +61,7 @@ class PremiumService {
       // Get current usage counts
       const usage = await this.getCurrentUsage();
       
-      return {
+      const status = {
         isPremium: planId !== 'free',
         plan: planId,
         features: plan.features,
@@ -60,6 +69,14 @@ class PremiumService {
         usage,
         subscription
       };
+
+      // Cache the result
+      if (!userId) {
+        this.cachedStatus = status;
+        this.lastFetchTime = Date.now();
+      }
+
+      return status;
     } catch (error) {
       console.error('Failed to get premium status:', error);
       return this.getFreePlanStatus();

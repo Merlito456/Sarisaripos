@@ -266,20 +266,20 @@ export default function CameraPOS() {
                   <div className="flex items-center space-x-2">
                     <button 
                       onClick={() => updateQuantity(item.id!, item.quantity - 1)}
-                      className="p-1.5 bg-white border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors"
+                      className="p-1.5 bg-white border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors active:scale-90"
                     >
                       <Minus size={14} />
                     </button>
                     <span className="font-black w-6 text-center text-sm">{item.quantity}</span>
                     <button 
                       onClick={() => updateQuantity(item.id!, item.quantity + 1)}
-                      className="p-1.5 bg-white border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors"
+                      className="p-1.5 bg-white border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors active:scale-90"
                     >
                       <Plus size={14} />
                     </button>
                     <button 
                       onClick={() => removeFromCart(item.id!)}
-                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors active:scale-90"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -315,14 +315,14 @@ export default function CameraPOS() {
             <button 
               onClick={() => checkout('gcash', total)}
               disabled={cart.length === 0 || isProcessing}
-              className="py-4 bg-blue-500 text-white rounded-2xl font-black text-sm shadow-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+              className="py-4 bg-blue-500 text-white rounded-2xl font-black text-sm shadow-lg hover:bg-blue-600 transition-all disabled:opacity-50 active:scale-95"
             >
               GCASH
             </button>
             <button 
               onClick={() => checkout('credit', total)}
               disabled={cart.length === 0 || isProcessing}
-              className="py-4 bg-red-500 text-white rounded-2xl font-black text-sm shadow-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+              className="py-4 bg-red-500 text-white rounded-2xl font-black text-sm shadow-lg hover:bg-red-600 transition-all disabled:opacity-50 active:scale-95"
             >
               UTANG
             </button>

@@ -119,14 +119,15 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-black/50 z-50 lg:hidden backdrop-blur-sm"
+            className="fixed inset-0 bg-black/40 z-[60] lg:hidden"
           />
         )}
       </AnimatePresence>
 
       <aside
-        className={`fixed lg:absolute z-50 w-72 h-full bg-white border-r border-stone-200 flex flex-col shadow-2xl lg:shadow-none transition-transform duration-300 transform will-change-transform ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        id="sidebar"
+        className={`fixed lg:absolute z-[70] w-72 h-full bg-white border-r border-stone-200 flex flex-col shadow-2xl lg:shadow-none transition-all duration-300 ease-in-out will-change-transform ${
+          isSidebarOpen ? 'translate-x-0 opacity-100 visible' : '-translate-x-full lg:translate-x-0 lg:opacity-100 lg:visible opacity-0 invisible pointer-events-none lg:pointer-events-auto'
         }`}
       >
         <div className="p-8 flex items-center justify-between">
@@ -145,28 +146,32 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
         </div>
 
         <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={() => setIsSidebarOpen(false)}
-              className={`flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold transition-all group active:scale-95 active:bg-stone-50 ${
-                location.pathname === item.path
-                  ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100'
-                  : 'text-stone-400 hover:bg-stone-50 hover:text-stone-600'
-              }`}
-            >
-              <span className={`${location.pathname === item.path ? 'text-white' : 'text-stone-300 group-hover:text-indigo-400'}`}>
-                {item.icon}
-              </span>
-              <span className="tracking-tight">{item.label}</span>
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const Icon = item.icon as any;
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setIsSidebarOpen(false)}
+                className={`flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold transition-all group active:bg-stone-50 ${
+                  isActive
+                    ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100'
+                    : 'text-stone-400 hover:bg-stone-50 hover:text-stone-600'
+                }`}
+              >
+                <span className={`${isActive ? 'text-white' : 'text-stone-300 group-hover:text-indigo-400'}`}>
+                  <Icon size={20} />
+                </span>
+                <span className="tracking-tight">{item.label}</span>
+              </Link>
+            );
+          })}
 
           <Link
             to="/premium"
             onClick={() => setIsSidebarOpen(false)}
-            className={`flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold transition-all group mt-4 active:scale-95 ${
+            className={`flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold transition-all group mt-4 active:bg-amber-100 ${
               location.pathname === '/premium'
                 ? 'bg-amber-500 text-white shadow-xl shadow-amber-100'
                 : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
@@ -195,7 +200,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
 
           <button
             onClick={onLogout}
-            className="w-full flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold text-stone-400 hover:bg-red-50 hover:text-red-600 transition-all group active:scale-95"
+            className="w-full flex items-center space-x-4 px-6 py-4 rounded-2xl font-bold text-stone-400 hover:bg-red-50 hover:text-red-600 transition-all group active:bg-red-50"
           >
             <LogOut size={20} className="group-hover:text-red-500" />
             <span>Sign Out</span>
@@ -204,7 +209,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
       </aside>
 
       {/* Content Scroll Area */}
-      <div className="absolute top-16 lg:top-0 bottom-20 lg:bottom-0 left-0 lg:left-72 right-0 overflow-y-auto bg-stone-100 touch-pan-y">
+      <div className="absolute top-16 lg:top-0 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:bottom-0 left-0 lg:left-72 right-0 overflow-y-auto bg-stone-100 touch-pan-y">
         <Toaster position="top-right" />
         <div className="min-h-full flex flex-col bg-white">
           <div className="flex-1 p-4 relative z-10">
@@ -214,23 +219,33 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white border-t border-stone-200 px-1 py-2 flex items-center justify-around z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-        {navItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`flex flex-col items-center justify-center w-16 py-1 rounded-xl transition-all active:scale-90 active:bg-stone-50 ${
-              location.pathname === item.path
-                ? 'text-indigo-600 bg-indigo-50'
-                : 'text-stone-400'
-            }`}
-          >
-            <div className={location.pathname === item.path ? 'scale-110' : ''}>
-              {item.icon}
-            </div>
-            <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">{item.label}</span>
-          </Link>
-        ))}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white border-t border-stone-200 px-1 py-2 flex items-center justify-around z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)] safe-area-bottom">
+        {navItems.map((item) => {
+          const Icon = item.icon as any;
+          const isActive = location.pathname === item.path;
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex-1 flex flex-col items-center justify-center py-1 relative transition-colors ${
+                isActive 
+                  ? 'text-indigo-600' 
+                  : 'text-stone-400 hover:text-stone-600'
+              }`}
+            >
+              <div className={`p-1 rounded-xl transition-transform duration-200 ${isActive ? 'bg-indigo-50 scale-110' : ''}`}>
+                <Icon size={22} />
+              </div>
+              <span className="text-[9px] font-black mt-0.5 uppercase tracking-tighter text-center leading-none">{item.label}</span>
+              {isActive && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 w-1 h-1 bg-indigo-600 rounded-full"
+                />
+              )}
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );

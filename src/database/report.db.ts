@@ -21,8 +21,31 @@ export class ReportDatabase {
       .between(startDate, endDate)
       .toArray();
 
+    if (transactions.length === 0) return [];
+
     const salesByDate = new Map<string, SalesData>();
+    const transactionIds = transactions.map(t => t.id).filter((id): id is string => !!id);
     
+    // Fetch all items for these transactions in one go
+    const allItems = await db.transactionItems
+      .where('transactionId')
+      .anyOf(transactionIds)
+      .toArray();
+
+    // Fetch all products involved in one go
+    const productIds = Array.from(new Set(allItems.map(item => item.productId)));
+    const products = await db.products.where('id').anyOf(productIds).toArray();
+    const productMap = new Map(products.map(p => [p.id, p]));
+    
+    // Group items by transaction
+    const itemsByTx = new Map<string, any[]>();
+    for (const item of allItems) {
+      if (!itemsByTx.has(item.transactionId)) {
+        itemsByTx.set(item.transactionId, []);
+      }
+      itemsByTx.get(item.transactionId)!.push(item);
+    }
+
     for (const transaction of transactions) {
       const dateKey = transaction.timestamp.toISOString().split('T')[0];
       
@@ -58,14 +81,10 @@ export class ReportDatabase {
           break;
       }
       
-      // Calculate profit
-      const items = await db.transactionItems
-        .where('transactionId')
-        .equals(transaction.id)
-        .toArray();
-      
+      // Calculate profit using pre-fetched items and products
+      const items = itemsByTx.get(transaction.id!) || [];
       for (const item of items) {
-        const product = await db.products.get(item.productId);
+        const product = productMap.get(item.productId);
         if (product) {
           data.totalProfit += (item.unitPrice - product.cost) * item.quantity;
         }
@@ -414,15 +433,17 @@ export class ReportDatabase {
     const lowStockItems = products.filter(p => p.stock <= p.minStock && p.stock > 0);
     const outOfStockItems = products.filter(p => p.stock === 0);
     
-    // Find slow moving items (items with low turnover)
+    // Fetch all transaction items once to calculate turnover/slow moving
+    const allTransactionItems = await db.transactionItems.toArray();
+    const productSalesMap = new Map<string, number>();
+    for (const item of allTransactionItems) {
+      productSalesMap.set(item.productId, (productSalesMap.get(item.productId) || 0) + item.quantity);
+    }
+
+    // Find slow moving items
     const slowMovingItems = [];
     for (const product of products) {
-      const transactions = await db.transactionItems
-        .where('productId')
-        .equals(product.id)
-        .toArray();
-      
-      const totalSold = transactions.reduce((sum, t) => sum + t.quantity, 0);
+      const totalSold = productSalesMap.get(product.id!) || 0;
       const daysInStock = product.createdAt ? 
         Math.floor((Date.now() - product.createdAt.getTime()) / (1000 * 3600 * 24)) : 90;
       
@@ -465,15 +486,24 @@ export class ReportDatabase {
   
   // Helper: Calculate profit for transactions
   private async calculateProfitForTransactions(transactions: any[]): Promise<number> {
-    const transactionIds = transactions.map(t => t.id);
+    const transactionIds = transactions.map(t => t.id).filter((id): id is string => !!id);
+    if (transactionIds.length === 0) return 0;
+
     const items = await db.transactionItems
       .where('transactionId')
       .anyOf(transactionIds)
       .toArray();
     
+    if (items.length === 0) return 0;
+
+    // Fetch all products involved in one go
+    const productIds = Array.from(new Set(items.map(item => item.productId)));
+    const products = await db.products.where('id').anyOf(productIds).toArray();
+    const productMap = new Map(products.map(p => [p.id, p]));
+
     let totalProfit = 0;
     for (const item of items) {
-      const product = await db.products.get(item.productId);
+      const product = productMap.get(item.productId);
       if (product) {
         totalProfit += (item.unitPrice - product.cost) * item.quantity;
       }

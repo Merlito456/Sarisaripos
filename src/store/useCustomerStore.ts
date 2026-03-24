@@ -32,12 +32,32 @@ export const useCustomerStore = create<CustomerState>()(
       loadCustomers: async () => {
         set({ isLoading: true, error: null });
         try {
-          const customers = await customerDB.customers.where('isActive').equals(1).toArray(); // Use 1 for true as per Dexie common practice or true if boolean
-          // Actually, let's use true if it's boolean
-          const allCustomers = await customerDB.customers.toArray();
-          const activeCustomers = allCustomers.filter(c => c.isActive);
+          // Fetch only active customers directly from DB
+          const activeCustomers = await customerDB.customers
+            .where('isActive')
+            .equals(1) // Assuming 1 for true if it's stored as number, or true if boolean
+            .toArray();
+          
+          // If the above query fails to find anything because of type mismatch (boolean vs number)
+          // we can fallback to filtering, but let's try to be efficient.
+          // In Dexie, booleans are often stored as 1/0 for indexing.
+          
+          if (activeCustomers.length === 0) {
+            // Fallback check if it's stored as boolean true
+            const booleanActive = await customerDB.customers
+              .where('isActive')
+              .equals(true as any)
+              .toArray();
+            
+            if (booleanActive.length > 0) {
+              set({ customers: booleanActive, isLoading: false });
+              return;
+            }
+          }
+
           set({ customers: activeCustomers, isLoading: false });
         } catch (error) {
+          console.error('Failed to load customers:', error);
           set({ error: 'Failed to load customers', isLoading: false });
         }
       },

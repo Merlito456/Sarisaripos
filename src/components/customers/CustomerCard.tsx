@@ -34,7 +34,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
   return (
     <div 
       onClick={onClick}
-      className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden border border-stone-200"
+      className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden border border-stone-200 active:scale-[0.98]"
     >
       <div className="p-5">
         <div className="flex items-start justify-between">
