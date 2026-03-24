@@ -79,6 +79,10 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
   const location = useLocation();
   const { syncStatus } = useSettingsStore();
 
+  useEffect(() => {
+    console.log("LAYOUT MOUNTED - Path: " + location.pathname);
+  }, []);
+
   const navItems = [
     { path: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Home' },
     { path: '/pos', icon: <ShoppingCart size={20} />, label: 'POS' },
@@ -89,9 +93,9 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
   ];
 
   return (
-    <div className="flex h-full bg-stone-100 font-sans text-stone-900 overflow-hidden">
+    <div className="fixed inset-0 bg-stone-100 font-sans text-stone-900 overflow-hidden border-4 border-red-500">
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-stone-200 px-4 py-3 flex items-center justify-between shadow-sm">
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 z-40 bg-white border-b border-stone-200 px-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md">
             <ShoppingCart size={18} />
@@ -99,10 +103,16 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
           <h1 className="text-lg font-black tracking-tighter uppercase text-indigo-900">Sari-Sari <span className="text-indigo-600">POS</span></h1>
         </div>
         
-        {/* EMERGENCY MARKER */}
         <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded-full font-bold animate-pulse">
-          LAYOUT_ACTIVE
+          LAYOUT_ACTIVE_V2
         </div>
+
+        <button 
+          onClick={() => console.log("TEST BUTTON CLICKED AT " + new Date().toLocaleTimeString())}
+          className="bg-yellow-400 text-black px-2 py-1 rounded text-[10px] font-black active:bg-yellow-600"
+        >
+          TEST
+        </button>
 
         <button 
           onClick={() => setIsSidebarOpen(true)}
@@ -113,20 +123,15 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
       </header>
 
       {/* Sidebar (Desktop & Mobile Overlay) */}
-      <AnimatePresence>
-        {isSidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-black/50 z-50 lg:hidden backdrop-blur-sm"
-          />
-        )}
-      </AnimatePresence>
+      {isSidebarOpen && (
+        <div
+          onClick={() => setIsSidebarOpen(false)}
+          className="fixed inset-0 bg-black/50 z-50 lg:hidden backdrop-blur-sm"
+        />
+      )}
 
       <aside
-        className={`fixed lg:relative z-50 w-72 h-full bg-white border-r border-stone-200 flex flex-col shadow-2xl lg:shadow-none transition-transform duration-300 transform ${
+        className={`fixed lg:absolute z-50 w-72 h-full bg-white border-r border-stone-200 flex flex-col shadow-2xl lg:shadow-none transition-transform duration-300 transform ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -204,24 +209,24 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-y-auto relative pt-16 lg:pt-0 pb-28 lg:pb-0 bg-white min-h-0">
+      {/* Content Scroll Area */}
+      <div className="absolute top-16 lg:top-0 bottom-20 lg:bottom-0 left-0 lg:left-72 right-0 overflow-y-auto bg-yellow-200">
         <Toaster position="top-right" />
-        <div className="flex-1 flex flex-col min-h-full relative">
+        <div className="min-h-full flex flex-col bg-blue-100">
           <div className="relative bg-indigo-600 text-white text-[12px] p-4 text-center font-black uppercase tracking-widest z-50 border-b-4 border-indigo-800 shadow-lg">
-            --- CONTENT AREA START ---
+            --- CONTENT AREA START V2 ---
           </div>
-          <div className="flex-1 bg-stone-50 p-4 relative z-10">
+          <div className="flex-1 bg-green-100 p-4 relative z-10 border-2 border-dashed border-green-500">
             {children}
           </div>
           <div className="relative bg-indigo-600 text-white text-[12px] p-4 text-center font-black uppercase tracking-widest z-50 border-t-4 border-indigo-800 shadow-lg">
-            --- CONTENT AREA END ---
+            --- CONTENT AREA END V2 ---
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 px-1 py-2 flex items-center justify-around z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white border-t border-stone-200 px-1 py-2 flex items-center justify-around z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
         {navItems.map((item) => (
           <Link
             key={item.path}
@@ -232,7 +237,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
                 : 'text-stone-400'
             }`}
           >
-            <div className={location.pathname === item.path ? 'scale-110' : ''}>
+            <div>
               {item.icon}
             </div>
             <span className="text-[10px] font-bold mt-1 uppercase tracking-tighter">{item.label}</span>
@@ -256,7 +261,7 @@ function AppContent() {
     const originalError = console.error;
     
     const addLog = (msg: string) => {
-      setLogs(prev => [msg.slice(0, 100), ...prev].slice(0, 15));
+      setLogs(prev => [msg.slice(0, 150), ...prev].slice(0, 30));
     };
 
     console.log = (...args) => {
@@ -266,13 +271,24 @@ function AppContent() {
     };
     console.error = (...args) => {
       const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
-      addLog("ERROR: " + msg);
+      addLog("!!! ERROR: " + msg);
       originalError(...args);
+    };
+
+    window.onerror = (message, source, lineno, colno, error) => {
+      addLog(`GLOBAL ERROR: ${message} at ${source}:${lineno}:${colno}`);
+      return false;
+    };
+
+    window.onunhandledrejection = (event) => {
+      addLog(`PROMISE REJECTION: ${event.reason}`);
     };
 
     return () => {
       console.log = originalLog;
       console.error = originalError;
+      window.onerror = null;
+      window.onunhandledrejection = null;
     };
   }, []);
 
@@ -358,41 +374,41 @@ function AppContent() {
   }
 
   return (
-      <Layout onLogout={signOut}>
-        {/* Debug Overlay - Visible for troubleshooting */}
-        <div className="fixed top-0 left-0 right-0 z-[9999] bg-black/90 text-white p-2 text-[10px] font-mono max-h-[40vh] overflow-y-auto pointer-events-auto border-b-2 border-yellow-500">
-          <div className="flex justify-between items-center mb-2 border-b border-white/20 pb-1">
-            <span className="font-bold text-yellow-400 uppercase tracking-widest">Debug Console v4</span>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => window.location.reload()} 
-                className="bg-blue-600 px-2 py-0.5 rounded text-[9px] font-bold active:bg-blue-800"
-              >
-                RELOAD
-              </button>
-              <button 
-                onClick={() => setLogs([])} 
-                className="bg-red-600 px-2 py-0.5 rounded text-[9px] font-bold active:bg-red-800"
-              >
-                CLEAR
-              </button>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <div className="text-blue-300">User: {user ? 'Logged In' : 'Logged Out'}</div>
-            <div className="text-blue-300">Loading: {isLoading ? 'True' : 'False'}</div>
-            <div className="text-blue-300">Path: {location.pathname}{location.hash}</div>
-            <div className="text-blue-300">Size: {window.innerWidth}x{window.innerHeight}</div>
-            <div className="mt-2 pt-1 border-t border-white/10">
-              {logs.slice(-15).map((log, i) => (
-                <div key={i} className="break-all border-b border-white/5 py-0.5">
-                  <span className="text-gray-500">[{i}]</span> {log}
-                </div>
-              ))}
-            </div>
+    <>
+      {/* Debug Overlay - NOW OUTSIDE LAYOUT */}
+      <div className="fixed top-0 left-0 right-0 z-[9999] bg-black/95 text-white p-2 text-[10px] font-mono max-h-[50vh] overflow-y-auto pointer-events-auto border-b-4 border-yellow-500 shadow-2xl">
+        <div className="flex justify-between items-center mb-2 border-b border-white/20 pb-1">
+          <span className="font-bold text-yellow-400 uppercase tracking-widest">Debug Console v5</span>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => window.location.reload()} 
+              className="bg-blue-600 px-3 py-1 rounded text-[10px] font-black active:bg-blue-800 shadow-md"
+            >
+              RELOAD
+            </button>
+            <button 
+              onClick={() => setLogs([])} 
+              className="bg-red-600 px-3 py-1 rounded text-[10px] font-black active:bg-red-800 shadow-md"
+            >
+              CLEAR
+            </button>
           </div>
         </div>
-        
+        <div className="space-y-1">
+          <div className="text-blue-300 font-bold">User: {user ? user.email : 'Logged Out'}</div>
+          <div className="text-blue-300 font-bold">Path: {location.pathname}{location.hash}</div>
+          <div className="text-blue-300 font-bold">Viewport: {window.innerWidth}x{window.innerHeight}</div>
+          <div className="mt-2 pt-1 border-t border-white/20">
+            {logs.map((log, i) => (
+              <div key={i} className="break-all border-b border-white/5 py-1 leading-tight">
+                <span className="text-gray-500">[{logs.length - 1 - i}]</span> {log}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <Layout onLogout={signOut}>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -406,6 +422,7 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
+    </>
   );
 }
 
