@@ -134,8 +134,8 @@ export const Premium: React.FC = () => {
             return (
               <div
                 key={planId}
-                className={`relative bg-white rounded-3xl shadow-sm overflow-hidden transition-all hover:shadow-xl border-2 cursor-pointer active:scale-[0.98] ${
-                  selectedPlan === planId ? 'border-indigo-600 scale-105 z-10' : 'border-stone-100'
+                className={`relative bg-white rounded-3xl shadow-sm overflow-hidden transition-all hover:shadow-xl border-2 cursor-pointer active:bg-stone-50 ${
+                  selectedPlan === planId ? 'border-indigo-600 z-10' : 'border-stone-100'
                 } ${isCurrentPlan(planId) ? 'bg-indigo-50/30' : ''}`}
                 onClick={() => setSelectedPlan(planId)}
               >

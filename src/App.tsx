@@ -186,7 +186,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
 
         <div className="p-6 mt-auto space-y-4">
           <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100 relative overflow-hidden group">
-            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
+            <div className="absolute -right-4 -bottom-4 opacity-10 transition-transform">
               <ShoppingCart size={80} />
             </div>
             <div className="relative z-10">
@@ -233,7 +233,7 @@ function Layout({ children, onLogout }: { children: React.ReactNode; onLogout: (
                   : 'text-stone-400 hover:text-stone-600'
               }`}
             >
-              <div className={`p-1 rounded-xl transition-transform duration-200 ${isActive ? 'bg-indigo-50 scale-110' : ''}`}>
+              <div className={`p-1 rounded-xl transition-all duration-200 ${isActive ? 'bg-indigo-50' : ''}`}>
                 <Icon size={22} />
               </div>
               <span className="text-[9px] font-black mt-0.5 uppercase tracking-tighter text-center leading-none">{item.label}</span>
@@ -264,7 +264,13 @@ function AppContent() {
     const originalError = console.error;
     
     const addLog = (msg: string) => {
-      setLogs(prev => [msg.slice(0, 150), ...prev].slice(0, 30));
+      // Defer state update to avoid "Cannot update a component while rendering a different component"
+      setTimeout(() => {
+        setLogs(prev => {
+          if (prev[0] === msg.slice(0, 150)) return prev; // Avoid duplicate logs if they happen rapidly
+          return [msg.slice(0, 150), ...prev].slice(0, 30);
+        });
+      }, 0);
     };
 
     console.log = (...args) => {

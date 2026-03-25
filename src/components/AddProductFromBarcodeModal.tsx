@@ -256,7 +256,7 @@ export const AddProductFromBarcodeModal: React.FC<AddProductFromBarcodeModalProp
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in duration-200">
+      <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in duration-200">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-blue-50">
           <div>
             <h2 className="text-xl font-bold text-blue-900">Unknown Barcode</h2>

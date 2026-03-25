@@ -77,11 +77,11 @@ export const UtangReport: React.FC<UtangReportProps> = ({ isOpen, onClose }) => 
         </div>
 
         <div className="p-6 border-t border-stone-100 bg-stone-50/50 flex space-x-4">
-          <button className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-100 active:scale-95 flex items-center justify-center space-x-2">
+          <button className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-100 active:bg-indigo-700 flex items-center justify-center space-x-2">
             <Download size={20} />
             <span>Export PDF</span>
           </button>
-          <button className="flex-1 bg-stone-900 hover:bg-stone-800 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-stone-100 active:scale-95 flex items-center justify-center space-x-2">
+          <button className="flex-1 bg-stone-900 hover:bg-stone-800 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-stone-100 active:bg-stone-800 flex items-center justify-center space-x-2">
             <Printer size={20} />
             <span>Print Report</span>
           </button>

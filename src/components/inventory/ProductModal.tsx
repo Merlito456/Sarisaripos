@@ -127,7 +127,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-in fade-in duration-200">
         <div className="p-6 border-b border-stone-100 flex justify-between items-center bg-stone-50">
           <h2 className="text-xl font-black text-stone-900 uppercase tracking-tight">
             {product ? 'Edit Product' : 'Add New Product'}
@@ -301,13 +301,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-4 bg-stone-100 text-stone-600 rounded-2xl font-black uppercase tracking-widest hover:bg-stone-200 transition-all"
+              className="flex-1 py-4 bg-stone-100 text-stone-600 rounded-2xl font-black uppercase tracking-widest hover:bg-stone-200 active:bg-stone-200 transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all flex items-center justify-center space-x-2"
+              className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all flex items-center justify-center space-x-2"
             >
               <Save size={20} />
               <span>{product ? 'Update' : 'Save Product'}</span>

@@ -150,14 +150,14 @@ export const CustomerForm: React.FC<CustomerFormProps> = ({
           <div className="flex space-x-4 pt-4">
             <button
               type="submit"
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-100 active:scale-95"
+              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-100 active:bg-indigo-700"
             >
               {editCustomer ? 'Update' : 'Add Customer'}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-600 py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95"
+              className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-600 py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:bg-stone-200"
             >
               Cancel
             </button>

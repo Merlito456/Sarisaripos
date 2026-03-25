@@ -4,6 +4,7 @@ import { dataService } from '../services/DataService';
 import { Search, Plus, Package, Filter, MoreVertical, Edit2, Trash2, AlertCircle, CloudUpload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ProductModal } from '../components/inventory/ProductModal';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { premiumService } from '../services/PremiumService';
 
 import { useSettingsStore } from '../store/useSettingsStore';
@@ -18,6 +19,8 @@ export default function Inventory() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isPremium, setIsPremium] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadProducts();
@@ -68,16 +71,23 @@ export default function Inventory() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await dataService.deleteProduct(id);
-        toast.success('Product deleted successfully');
-        loadProducts();
-      } catch (error) {
-        console.error('Failed to delete product:', error);
-        toast.error('Failed to delete product');
-      }
+  const handleDeleteProduct = (id: string) => {
+    setProductToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return;
+    
+    try {
+      await dataService.deleteProduct(productToDelete);
+      toast.success('Product deleted successfully');
+      loadProducts();
+    } catch (error) {
+      console.error('Failed to delete product:', error);
+      toast.error('Failed to delete product');
+    } finally {
+      setProductToDelete(null);
     }
   };
 
@@ -128,7 +138,7 @@ export default function Inventory() {
             <button 
               onClick={handleBackup}
               disabled={isBackingUp}
-              className="flex items-center justify-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg hover:bg-emerald-700 transition-all transform active:bg-emerald-700 disabled:opacity-50"
+              className="flex items-center justify-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg hover:bg-emerald-700 active:bg-emerald-800 transition-all transform disabled:opacity-50"
             >
               <CloudUpload size={20} className={isBackingUp ? 'animate-bounce' : ''} />
               <span>{isBackingUp ? 'Backing up...' : 'Backup to Cloud'}</span>
@@ -136,7 +146,7 @@ export default function Inventory() {
           )}
           <button 
             onClick={handleAddProduct}
-            className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all transform active:bg-indigo-700"
+            className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700 active:bg-indigo-800 transition-all transform"
           >
             <Plus size={20} />
             <span>Add New Product</span>
@@ -230,13 +240,13 @@ export default function Inventory() {
                     <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => handleEditProduct(product)}
-                        className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors"
+                        className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors active:bg-indigo-100"
                       >
                         <Edit2 size={18} />
                       </button>
                       <button 
                         onClick={() => handleDeleteProduct(product.id!)}
-                        className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors"
+                        className="p-2 hover:bg-red-50 text-red-500 rounded-lg transition-colors active:bg-red-100"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -312,6 +322,16 @@ export default function Inventory() {
         onClose={() => setIsModalOpen(false)}
         onSave={loadProducts}
         product={editingProduct}
+      />
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDeleteProduct}
+        title="Delete Product"
+        message="Are you sure you want to delete this product? This action cannot be undone."
+        confirmText="Delete"
+        type="danger"
       />
       
       {/* Bottom Spacer for Mobile Nav */}

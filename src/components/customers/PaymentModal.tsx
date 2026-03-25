@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, CreditCard, Smartphone, Landmark } from 'lucide-react';
 import { useCustomer } from '../../hooks/useCustomer';
 import { type Customer } from '../../types/customer';
+import { toast } from 'react-hot-toast';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -23,7 +24,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     e.preventDefault();
     
     if (amount > customer.currentBalance) {
-      alert('Payment amount cannot exceed current balance');
+      toast.error('Payment amount cannot exceed current balance');
       return;
     }
 
@@ -136,7 +137,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
           <button
             type="submit"
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 active:scale-95 flex items-center justify-center space-x-2"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-100 active:bg-emerald-700 flex items-center justify-center space-x-2"
           >
             <span>Record Payment</span>
             <span>💰</span>

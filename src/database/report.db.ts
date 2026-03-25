@@ -110,17 +110,26 @@ export class ReportDatabase {
       .between(startDate, endDate)
       .toArray();
     
-    const transactionIds = transactions.map(t => t.id);
+    if (transactions.length === 0) return [];
+    
+    const transactionIds = transactions.map(t => t.id).filter((id): id is string => !!id);
     
     const transactionItems = await db.transactionItems
       .where('transactionId')
       .anyOf(transactionIds)
       .toArray();
     
+    if (transactionItems.length === 0) return [];
+
+    // Fetch all products involved in one go
+    const productIds = Array.from(new Set(transactionItems.map(item => item.productId)));
+    const products = await db.products.where('id').anyOf(productIds).toArray();
+    const productMap = new Map(products.map(p => [p.id, p]));
+    
     const productStats = new Map<string, ProductPerformance>();
     
     for (const item of transactionItems) {
-      const product = await db.products.get(item.productId);
+      const product = productMap.get(item.productId);
       if (!product) continue;
       
       if (!productStats.has(product.id)) {

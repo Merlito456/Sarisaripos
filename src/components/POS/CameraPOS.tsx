@@ -72,7 +72,7 @@ export default function CameraPOS() {
         <div className="grid grid-cols-3 gap-3">
           <button
             onClick={() => openCamera('barcode')}
-            className="bg-indigo-600 rounded-2xl p-4 text-white text-left hover:scale-105 transition-transform shadow-lg shadow-indigo-100"
+            className="bg-indigo-600 rounded-2xl p-4 text-white text-left transition-all shadow-lg shadow-indigo-100 active:bg-indigo-700"
           >
             <Barcode size={24} className="mb-2" />
             <p className="font-black text-xs uppercase tracking-wider">Barcode</p>
@@ -81,7 +81,7 @@ export default function CameraPOS() {
           
           <button
             onClick={() => openCamera('text')}
-            className="bg-emerald-600 rounded-2xl p-4 text-white text-left hover:scale-105 transition-transform shadow-lg shadow-emerald-100"
+            className="bg-emerald-600 rounded-2xl p-4 text-white text-left transition-all shadow-lg shadow-emerald-100 active:bg-emerald-700"
           >
             <Type size={24} className="mb-2" />
             <p className="font-black text-xs uppercase tracking-wider">Text Detection</p>
@@ -90,7 +90,7 @@ export default function CameraPOS() {
           
           <button
             onClick={() => openCamera('auto')}
-            className="bg-purple-600 rounded-2xl p-4 text-white text-left hover:scale-105 transition-transform shadow-lg shadow-purple-100"
+            className="bg-purple-600 rounded-2xl p-4 text-white text-left transition-all shadow-lg shadow-purple-100 active:bg-purple-700"
           >
             <Zap size={24} className="mb-2" />
             <p className="font-black text-xs uppercase tracking-wider">Auto</p>
@@ -121,7 +121,7 @@ export default function CameraPOS() {
             <p className="text-stone-400 text-sm max-w-xs">Scan barcodes or use OCR to recognize products instantly. Works completely offline.</p>
             <button 
               onClick={() => openCamera('auto')}
-              className="px-10 py-4 bg-indigo-600 hover:bg-indigo-700 rounded-2xl font-black text-lg transition-all transform hover:scale-105 shadow-xl shadow-indigo-200"
+              className="px-10 py-4 bg-indigo-600 hover:bg-indigo-700 rounded-2xl font-black text-lg transition-all active:opacity-90 shadow-xl shadow-indigo-200"
             >
               Open Scanner
             </button>
@@ -146,11 +146,10 @@ export default function CameraPOS() {
               .map(product => (
                 <motion.button
                   key={product.id}
-                  whileTap={{ scale: 0.95 }}
                   onClick={() => addToCart(product)}
-                  className="p-4 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all text-left border border-stone-200 group flex flex-col h-full"
+                  className="p-4 bg-white rounded-2xl shadow-sm hover:shadow-md transition-all text-left border border-stone-200 group flex flex-col h-full active:bg-stone-50"
                 >
-                  <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">
+                  <div className="text-3xl mb-2 transition-transform">
                     {product.category === 'Drinks' ? '🥤' : product.category === 'Noodles' ? '🍜' : product.category === 'Snacks' ? '🍪' : '📦'}
                   </div>
                   <div className="font-bold text-stone-800 text-sm line-clamp-2 flex-1 leading-tight">{product.name}</div>
@@ -192,7 +191,7 @@ export default function CameraPOS() {
       <div className="lg:hidden fixed bottom-24 right-4 z-30">
         <button 
           onClick={() => setIsCartOpen(true)}
-          className="relative p-5 bg-indigo-600 text-white rounded-3xl shadow-2xl shadow-indigo-300 transform active:scale-90 transition-transform"
+          className="relative p-5 bg-indigo-600 text-white rounded-3xl shadow-2xl shadow-indigo-300 active:opacity-90 transition-all"
         >
           <ShoppingCart size={28} />
           {cart.length > 0 && (
@@ -266,20 +265,20 @@ export default function CameraPOS() {
                   <div className="flex items-center space-x-2">
                     <button 
                       onClick={() => updateQuantity(item.id!, item.quantity - 1)}
-                      className="p-1.5 bg-white border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors active:scale-90"
+                      className="p-1.5 bg-white border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors active:bg-stone-100"
                     >
                       <Minus size={14} />
                     </button>
                     <span className="font-black w-6 text-center text-sm">{item.quantity}</span>
                     <button 
                       onClick={() => updateQuantity(item.id!, item.quantity + 1)}
-                      className="p-1.5 bg-white border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors active:scale-90"
+                      className="p-1.5 bg-white border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors active:bg-stone-100"
                     >
                       <Plus size={14} />
                     </button>
                     <button 
                       onClick={() => removeFromCart(item.id!)}
-                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors active:scale-90"
+                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors active:bg-red-100"
                     >
                       <Trash2 size={14} />
                     </button>

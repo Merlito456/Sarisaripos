@@ -530,7 +530,7 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
                 disabled={isDetecting}
                 className={`w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all ${
                   (mode === 'photo' || mode === 'text') 
-                    ? 'bg-white hover:bg-gray-100 scale-110' 
+                    ? 'bg-white hover:bg-gray-100' 
                     : 'bg-white/20 text-white/50 cursor-not-allowed'
                 }`}
               >

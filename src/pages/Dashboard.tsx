@@ -77,7 +77,7 @@ export default function Dashboard() {
               {!isPremium && (
                 <Link 
                   to="/premium" 
-                  className="flex items-center space-x-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-100"
+                  className="flex items-center space-x-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 transition-all shadow-sm shadow-indigo-100"
                 >
                   <Crown size={12} />
                   <span>Upgrade</span>
@@ -102,7 +102,7 @@ export default function Dashboard() {
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {stats.map((stat, index) => (
-            <div key={index} className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 active:bg-gray-50 transition-transform">
+            <div key={index} className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100 active:bg-gray-50 transition-all">
               <div className="flex items-center justify-between mb-3">
                 <div className={`${stat.color} p-2.5 rounded-xl shadow-lg shadow-gray-100`}>
                   <stat.icon size={20} className="text-white" />
@@ -122,7 +122,7 @@ export default function Dashboard() {
               <Link
                 key={index}
                 to={action.path}
-                className={`${action.color} text-white rounded-2xl p-6 text-center hover:scale-[1.02] active:bg-opacity-90 transition-all shadow-lg shadow-gray-100`}
+                className={`${action.color} text-white rounded-2xl p-6 text-center active:bg-opacity-90 transition-all shadow-lg shadow-gray-100`}
               >
                 <div className="text-3xl mb-2">{action.icon}</div>
                 <span className="text-xs font-black uppercase tracking-widest">{action.title}</span>
@@ -148,7 +148,7 @@ export default function Dashboard() {
               </p>
               <Link
                 to="/premium"
-                className="bg-white text-blue-600 px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-blue-50 transition-all inline-block shadow-lg"
+                className="bg-white text-blue-600 px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-blue-50 active:bg-blue-100 transition-all inline-block shadow-lg"
               >
                 Upgrade Now
               </Link>

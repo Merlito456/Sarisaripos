@@ -333,14 +333,34 @@ export class ReceiptGenerator {
   
   // Print receipt to thermal printer (via ESC/POS commands)
   async printThermalReceipt(data: ReceiptData): Promise<void> {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(this.generateHTMLReceipt({
-        ...data,
-        paperWidth: 58 // Thermal paper size
-      }));
-      printWindow.document.close();
-      printWindow.print();
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const html = this.generateHTMLReceipt({
+      ...data,
+      paperWidth: 58 // Thermal paper size
+    });
+    
+    const doc = iframe.contentWindow?.document || iframe.contentDocument;
+    if (doc) {
+      doc.open();
+      doc.write(html);
+      doc.close();
+
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      }, 500);
     }
   }
   

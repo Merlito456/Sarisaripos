@@ -34,7 +34,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
   return (
     <div 
       onClick={onClick}
-      className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden border border-stone-200 active:scale-[0.98]"
+      className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer overflow-hidden border border-stone-200 active:bg-stone-50"
     >
       <div className="p-5">
         <div className="flex items-start justify-between">
@@ -89,7 +89,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
               e.stopPropagation();
               onSellClick();
             }}
-            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shadow-indigo-100 active:scale-95"
+            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shadow-indigo-100 active:bg-indigo-700"
           >
             🛒 Benta
           </button>
@@ -99,7 +99,7 @@ export const CustomerCard: React.FC<CustomerCardProps> = ({
                 e.stopPropagation();
                 onPayClick();
               }}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shadow-emerald-100 active:scale-95"
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-sm font-bold transition-all shadow-md shadow-emerald-100 active:bg-emerald-700"
             >
               💰 Bayad
             </button>

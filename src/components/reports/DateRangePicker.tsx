@@ -42,7 +42,7 @@ export const DateRangePicker: React.FC = () => {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-3 px-5 py-3 bg-white border border-stone-200 rounded-2xl hover:bg-stone-50 transition-all shadow-sm active:scale-95"
+        className="flex items-center space-x-3 px-5 py-3 bg-white border border-stone-200 rounded-2xl hover:bg-stone-50 transition-all shadow-sm active:bg-stone-100"
       >
         <Calendar size={18} className="text-indigo-600" />
         <span className="text-sm font-black text-stone-900 uppercase tracking-tight">

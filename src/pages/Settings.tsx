@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom';
 import { premiumService } from '../services/PremiumService';
 import { PREMIUM_PLANS } from '../config/premiumPlans';
 import { PremiumStatus } from '../types/premium';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 
 type TabType = 'store' | 'receipt' | 'inventory' | 'pos' | 'preferences' | 'backup' | 'security' | 'premium';
 
@@ -28,6 +29,7 @@ export const Settings: React.FC = () => {
   const [premiumStatus, setPremiumStatus] = React.useState<PremiumStatus | null>(null);
   const [masterCount, setMasterCount] = useState(0);
   const [isDownloadingMaster, setIsDownloadingMaster] = useState(false);
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
 
   React.useEffect(() => {
     premiumService.getPremiumStatus().then(setPremiumStatus);
@@ -421,12 +423,8 @@ export const Settings: React.FC = () => {
                 <div className="pt-8 border-t border-red-100 space-y-4">
                   <h3 className="text-xs font-black text-red-400 uppercase tracking-widest">Danger Zone</h3>
                   <button
-                    onClick={() => {
-                      if (confirm('WARNING: This will delete ALL local data. Make sure you have a backup first!')) {
-                        useSettingsStore.getState().clearLocalData();
-                      }
-                    }}
-                    className="px-6 py-4 bg-red-50 text-red-600 border-2 border-red-100 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-red-50 flex items-center space-x-2 transition-all"
+                    onClick={() => setIsClearModalOpen(true)}
+                    className="px-6 py-4 bg-red-50 text-red-600 border-2 border-red-100 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-red-50 flex items-center space-x-2 transition-all active:bg-red-100"
                   >
                     <Database size={18} />
                     <span>Clear All Local Data</span>
@@ -901,6 +899,18 @@ export const Settings: React.FC = () => {
         {/* Bottom Spacer for Mobile Nav */}
         <div className="h-24 lg:hidden" />
       </div>
+      <ConfirmationModal
+        isOpen={isClearModalOpen}
+        onClose={() => setIsClearModalOpen(false)}
+        onConfirm={() => {
+          useSettingsStore.getState().clearLocalData();
+          toast.success('Local data cleared');
+        }}
+        title="Clear Local Data"
+        message="WARNING: This will delete ALL local data. This action cannot be undone. Make sure you have a backup first!"
+        confirmText="Clear All Data"
+        type="danger"
+      />
     </div>
   );
 };

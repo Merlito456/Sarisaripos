@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,14 +13,16 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, isLoading, isPremium } = useAuth();
   
-  // Stringify for WebView console visibility
-  console.log("ProtectedRoute check: " + JSON.stringify({ 
-    user: !!user, 
-    isLoading, 
-    isPremium, 
-    hash: window.location.hash,
-    path: window.location.pathname
-  }));
+  useEffect(() => {
+    // Stringify for WebView console visibility
+    console.log("ProtectedRoute check: " + JSON.stringify({ 
+      user: !!user, 
+      isLoading, 
+      isPremium, 
+      hash: window.location.hash,
+      path: window.location.pathname
+    }));
+  }, [user, isLoading, isPremium]);
 
   if (isLoading) {
     return (

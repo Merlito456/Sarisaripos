@@ -34,17 +34,36 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   const handlePrint = async () => {
     setIsPrinting(true);
     try {
-      // Open print dialog with receipt
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        const html = receiptGenerator.generateHTMLReceipt(receiptData);
-        printWindow.document.write(html);
-        printWindow.document.close();
-        printWindow.print();
-        printWindow.onafterprint = () => {
-          printWindow.close();
-        };
+      // Create a hidden iframe for printing
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+
+      const html = receiptGenerator.generateHTMLReceipt(receiptData);
+      
+      const doc = iframe.contentWindow?.document || iframe.contentDocument;
+      if (doc) {
+        doc.open();
+        doc.write(html);
+        doc.close();
+
+        // Wait for resources to load
+        setTimeout(() => {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          
+          // Cleanup after printing
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+          }, 1000);
+        }, 500);
       }
+
       onPrint?.();
       toast.success('Receipt sent to printer!');
     } catch (error) {
@@ -242,7 +261,7 @@ Thank you! Please come again!
             <button
               onClick={handlePrint}
               disabled={isPrinting}
-              className="flex items-center justify-center space-x-2 px-4 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50"
+              className="flex items-center justify-center space-x-2 px-4 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-indigo-700 active:bg-indigo-800 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50"
             >
               <Printer size={18} />
               <span>{isPrinting ? 'Printing...' : 'Print'}</span>
@@ -251,7 +270,7 @@ Thank you! Please come again!
             <button
               onClick={handleDownloadPDF}
               disabled={isDownloading}
-              className="flex items-center justify-center space-x-2 px-4 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50"
+              className="flex items-center justify-center space-x-2 px-4 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-emerald-700 active:bg-emerald-800 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50"
             >
               <Download size={18} />
               <span>{isDownloading ? 'Downloading...' : 'PDF'}</span>
@@ -261,7 +280,7 @@ Thank you! Please come again!
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={handleShare}
-              className="flex items-center justify-center space-x-2 px-4 py-4 bg-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-purple-700 transition-all shadow-lg shadow-purple-100"
+              className="flex items-center justify-center space-x-2 px-4 py-4 bg-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-purple-700 active:bg-purple-800 transition-all shadow-lg shadow-purple-100"
             >
               <Share2 size={18} />
               <span>Share</span>
@@ -269,7 +288,7 @@ Thank you! Please come again!
             
             <button
               onClick={handleCopyReceipt}
-              className="flex items-center justify-center space-x-2 px-4 py-4 bg-stone-800 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-stone-900 transition-all shadow-lg shadow-stone-200"
+              className="flex items-center justify-center space-x-2 px-4 py-4 bg-stone-800 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-stone-900 active:bg-stone-950 transition-all shadow-lg shadow-stone-200"
             >
               {copied ? <CheckCircle size={18} /> : <Copy size={18} />}
               <span>{copied ? 'Copied!' : 'Copy'}</span>

@@ -29,7 +29,7 @@ export const PremiumFeature: React.FC<PremiumFeatureProps> = ({
       <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg z-10">
         <button
           onClick={() => navigate('/premium')}
-          className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform"
+          className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2 shadow-lg active:opacity-90 transition-all"
         >
           <Crown size={16} />
           <span>Unlock {feature}</span>

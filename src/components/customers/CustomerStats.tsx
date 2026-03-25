@@ -46,7 +46,7 @@ export const CustomerStats: React.FC<CustomerStatsProps> = ({ summary }) => {
       {stats.map((stat, index) => (
         <div key={index} className="bg-white rounded-3xl shadow-sm p-6 border border-stone-200 group hover:shadow-md transition-all">
           <div className="flex items-center justify-between mb-4">
-            <div className={`${stat.color} p-3 rounded-2xl text-white shadow-lg ${stat.shadow} group-hover:scale-110 transition-transform`}>
+            <div className={`${stat.color} p-3 rounded-2xl text-white shadow-lg ${stat.shadow} transition-transform`}>
               <stat.icon size={24} />
             </div>
           </div>
