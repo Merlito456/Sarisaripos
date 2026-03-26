@@ -45,11 +45,6 @@ export default function Inventory() {
   };
 
   const handleBackup = async () => {
-    if (!isPremium) {
-      toast.error('Premium plan required for cloud backup');
-      return;
-    }
-    
     setIsBackingUp(true);
     try {
       await dataService.backupToCloud();
@@ -94,11 +89,6 @@ export default function Inventory() {
   };
 
   const handleSyncToMaster = async (product: Product) => {
-    if (!isPremium) {
-      toast.error('Premium plan required to contribute to master database');
-      return;
-    }
-
     const loadingToast = toast.loading(`Syncing ${product.name} to master database...`);
     try {
       const result = await masterProductService.syncToMaster(product);
@@ -114,11 +104,6 @@ export default function Inventory() {
   };
 
   const handleSyncAllToMaster = async () => {
-    if (!isPremium) {
-      toast.error('Premium plan required to contribute to master database');
-      return;
-    }
-
     const unsynced = products.filter(p => !p.masterProductId);
     if (unsynced.length === 0) {
       toast.success('All products are already in master database');
@@ -186,26 +171,22 @@ export default function Inventory() {
           <p className="text-stone-500 font-medium">Track and manage your store products.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {isPremium && (
-            <>
-              <button 
-                onClick={handleSyncAllToMaster}
-                disabled={isSyncingToMaster}
-                className="flex items-center justify-center space-x-2 px-6 py-3 bg-amber-500 text-white rounded-2xl font-bold shadow-lg hover:bg-amber-600 active:bg-amber-700 transition-all transform disabled:opacity-50"
-              >
-                <Cloud size={20} className={isSyncingToMaster ? 'animate-pulse' : ''} />
-                <span>{isSyncingToMaster ? 'Syncing...' : 'Sync All to Master'}</span>
-              </button>
-              <button 
-                onClick={handleBackup}
-                disabled={isBackingUp}
-                className="flex items-center justify-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg hover:bg-emerald-700 active:bg-emerald-800 transition-all transform disabled:opacity-50"
-              >
-                <CloudUpload size={20} className={isBackingUp ? 'animate-bounce' : ''} />
-                <span>{isBackingUp ? 'Backing up...' : 'Backup to Cloud'}</span>
-              </button>
-            </>
-          )}
+          <button 
+            onClick={handleSyncAllToMaster}
+            disabled={isSyncingToMaster}
+            className="flex items-center justify-center space-x-2 px-6 py-3 bg-amber-500 text-white rounded-2xl font-bold shadow-lg hover:bg-amber-600 active:bg-amber-700 transition-all transform disabled:opacity-50"
+          >
+            <Cloud size={20} className={isSyncingToMaster ? 'animate-pulse' : ''} />
+            <span>{isSyncingToMaster ? 'Syncing...' : 'Sync All to Master'}</span>
+          </button>
+          <button 
+            onClick={handleBackup}
+            disabled={isBackingUp}
+            className="flex items-center justify-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg hover:bg-emerald-700 active:bg-emerald-800 transition-all transform disabled:opacity-50"
+          >
+            <CloudUpload size={20} className={isBackingUp ? 'animate-bounce' : ''} />
+            <span>{isBackingUp ? 'Backing up...' : 'Backup to Cloud'}</span>
+          </button>
           <button 
             onClick={handleAddProduct}
             className="flex items-center justify-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg hover:bg-indigo-700 active:bg-indigo-800 transition-all transform"

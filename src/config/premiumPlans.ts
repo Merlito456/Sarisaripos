@@ -7,7 +7,7 @@ export const PREMIUM_PLANS: Record<PlanType, PremiumPlan> = {
     price: 0,
     priceYearly: 0,
     features: {
-      cloudSync: false,
+      cloudSync: true,
       barcodeScanning: false,
       maxProducts: 100,
       maxCustomers: 50,

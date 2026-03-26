@@ -845,12 +845,12 @@ export const Settings: React.FC = () => {
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {[
-                        'Cloud Backup & Sync',
                         'Unlimited Products',
                         'Multi-store Support',
                         'Advanced Analytics',
                         'Priority Support',
-                        'Custom Branding'
+                        'Custom Branding',
+                        'Extended Backup Retention'
                       ].map((benefit, i) => (
                         <div key={i} className="flex items-center text-sm font-bold text-indigo-700">
                           <CheckCircle className="w-4 h-4 mr-2 text-indigo-500" />

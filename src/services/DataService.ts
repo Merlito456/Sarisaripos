@@ -229,9 +229,6 @@ class DataService {
 
   // BACKUP LOCAL TO CLOUD
   async backupToCloud(): Promise<void> {
-    const status = await premiumService.getPremiumStatus();
-    if (!status.isPremium) throw new Error('Premium plan required for cloud backup');
-
     const supabase = getSupabase();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');

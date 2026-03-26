@@ -68,7 +68,7 @@ export const Premium: React.FC = () => {
             Upgrade to Premium
           </h1>
           <p className="text-xl text-stone-500 max-w-2xl mx-auto font-medium">
-            Unlock cloud sync, unlimited products, and advanced features to grow your sari-sari store business.
+            Unlock unlimited products, advanced reports, and priority support to grow your business.
           </p>
         </div>
         
@@ -237,7 +237,7 @@ export const Premium: React.FC = () => {
                 </tr>
                 <tr>
                   <td className="px-8 py-5 text-sm font-bold text-stone-700">Cloud Sync</td>
-                  <td className="px-8 py-5 text-center text-stone-300">❌</td>
+                  <td className="px-8 py-5 text-center text-emerald-500">✅</td>
                   <td className="px-8 py-5 text-center text-emerald-500">✅</td>
                   <td className="px-8 py-5 text-center text-emerald-500">✅</td>
                   <td className="px-8 py-5 text-center text-emerald-500">✅</td>
