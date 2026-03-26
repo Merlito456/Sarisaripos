@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { type Product } from '../database/db';
 import { dataService } from '../services/DataService';
-import { Search, Plus, Package, Filter, MoreVertical, Edit2, Trash2, AlertCircle, CloudUpload } from 'lucide-react';
+import { Search, Plus, Package, Filter, MoreVertical, Edit2, Trash2, AlertCircle, CloudUpload, Cloud } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ProductModal } from '../components/inventory/ProductModal';
 import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { premiumService } from '../services/PremiumService';
+import { masterProductService } from '../services/MasterProductService';
 
 import { useSettingsStore } from '../store/useSettingsStore';
 import { RestockSuggestions } from '../components/inventory/RestockSuggestions';
@@ -21,6 +22,7 @@ export default function Inventory() {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [isSyncingToMaster, setIsSyncingToMaster] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -91,6 +93,56 @@ export default function Inventory() {
     }
   };
 
+  const handleSyncToMaster = async (product: Product) => {
+    if (!isPremium) {
+      toast.error('Premium plan required to contribute to master database');
+      return;
+    }
+
+    const loadingToast = toast.loading(`Syncing ${product.name} to master database...`);
+    try {
+      const result = await masterProductService.syncToMaster(product);
+      if (result.success) {
+        toast.success(`${product.name} synced to master database!`, { id: loadingToast });
+        loadProducts();
+      } else {
+        toast.error(`Sync failed: ${result.error}`, { id: loadingToast });
+      }
+    } catch (error) {
+      toast.error('Sync failed', { id: loadingToast });
+    }
+  };
+
+  const handleSyncAllToMaster = async () => {
+    if (!isPremium) {
+      toast.error('Premium plan required to contribute to master database');
+      return;
+    }
+
+    const unsynced = products.filter(p => !p.masterProductId);
+    if (unsynced.length === 0) {
+      toast.success('All products are already in master database');
+      return;
+    }
+
+    setIsSyncingToMaster(true);
+    const loadingToast = toast.loading(`Syncing ${unsynced.length} products to master database...`);
+    
+    let successCount = 0;
+    for (const product of unsynced) {
+      try {
+        const result = await masterProductService.syncToMaster(product);
+        if (result.success) successCount++;
+      } catch (error) {
+        console.error(`Failed to sync ${product.name}:`, error);
+      }
+    }
+
+    setIsSyncingToMaster(false);
+    toast.success(`Successfully synced ${successCount} products to master database`, { id: loadingToast });
+    loadProducts();
+  };
+
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          (p.barcode && p.barcode.includes(searchQuery));
@@ -135,14 +187,24 @@ export default function Inventory() {
         </div>
         <div className="flex flex-wrap gap-2">
           {isPremium && (
-            <button 
-              onClick={handleBackup}
-              disabled={isBackingUp}
-              className="flex items-center justify-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg hover:bg-emerald-700 active:bg-emerald-800 transition-all transform disabled:opacity-50"
-            >
-              <CloudUpload size={20} className={isBackingUp ? 'animate-bounce' : ''} />
-              <span>{isBackingUp ? 'Backing up...' : 'Backup to Cloud'}</span>
-            </button>
+            <>
+              <button 
+                onClick={handleSyncAllToMaster}
+                disabled={isSyncingToMaster}
+                className="flex items-center justify-center space-x-2 px-6 py-3 bg-amber-500 text-white rounded-2xl font-bold shadow-lg hover:bg-amber-600 active:bg-amber-700 transition-all transform disabled:opacity-50"
+              >
+                <Cloud size={20} className={isSyncingToMaster ? 'animate-pulse' : ''} />
+                <span>{isSyncingToMaster ? 'Syncing...' : 'Sync All to Master'}</span>
+              </button>
+              <button 
+                onClick={handleBackup}
+                disabled={isBackingUp}
+                className="flex items-center justify-center space-x-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg hover:bg-emerald-700 active:bg-emerald-800 transition-all transform disabled:opacity-50"
+              >
+                <CloudUpload size={20} className={isBackingUp ? 'animate-bounce' : ''} />
+                <span>{isBackingUp ? 'Backing up...' : 'Backup to Cloud'}</span>
+              </button>
+            </>
           )}
           <button 
             onClick={handleAddProduct}
@@ -238,6 +300,15 @@ export default function Inventory() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {!product.masterProductId && (
+                        <button 
+                          onClick={() => handleSyncToMaster(product)}
+                          title="Sync to Master Database"
+                          className="p-2 hover:bg-amber-50 text-amber-600 rounded-lg transition-colors active:bg-amber-100"
+                        >
+                          <Cloud size={18} />
+                        </button>
+                      )}
                       <button 
                         onClick={() => handleEditProduct(product)}
                         className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors active:bg-indigo-100"
@@ -273,6 +344,14 @@ export default function Inventory() {
                   </div>
                 </div>
                 <div className="flex space-x-1">
+                  {!product.masterProductId && (
+                    <button 
+                      onClick={() => handleSyncToMaster(product)}
+                      className="p-2 bg-stone-50 text-amber-500 rounded-xl active:bg-amber-50"
+                    >
+                      <Cloud size={16} />
+                    </button>
+                  )}
                   <button 
                     onClick={() => handleEditProduct(product)}
                     className="p-2 bg-stone-50 text-stone-400 rounded-xl active:bg-stone-100"
@@ -310,9 +389,33 @@ export default function Inventory() {
           ))}
         </div>
         {filteredProducts.length === 0 && (
-          <div className="p-12 text-center text-stone-400">
-            <Package size={48} className="mx-auto mb-4 opacity-20" />
-            <p className="font-medium">No products found in inventory.</p>
+          <div className="p-12 text-center space-y-6">
+            <div className="text-stone-400">
+              <Package size={48} className="mx-auto mb-4 opacity-20" />
+              <p className="font-medium">No products found in inventory.</p>
+            </div>
+            
+            {searchQuery.length >= 3 && (
+              <button
+                onClick={async () => {
+                  const loadingToast = toast.loading('Searching master database...');
+                  try {
+                    const results = await masterProductService.searchProducts(searchQuery);
+                    if (results.length > 0) {
+                      toast.success(`Found ${results.length} products in master database!`, { id: loadingToast });
+                      setIsModalOpen(true);
+                    } else {
+                      toast.error('No products found in master database either.', { id: loadingToast });
+                    }
+                  } catch (error) {
+                    toast.error('Search failed', { id: loadingToast });
+                  }
+                }}
+                className="px-8 py-4 bg-amber-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-amber-100 hover:bg-amber-600 transition-all transform active:scale-95"
+              >
+                Search Master Database
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -322,6 +425,7 @@ export default function Inventory() {
         onClose={() => setIsModalOpen(false)}
         onSave={loadProducts}
         product={editingProduct}
+        initialSearchQuery={searchQuery}
       />
 
       <ConfirmationModal

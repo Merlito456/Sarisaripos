@@ -375,6 +375,80 @@ export class MasterProductService {
     return { ...newProduct, id };
   }
 
+  // Sync a local product to the master database (upload to Supabase)
+  async syncToMaster(product: Product): Promise<{ success: boolean; masterProduct?: MasterProduct; error?: string }> {
+    if (!isSupabaseConfigured()) {
+      return { success: false, error: 'Supabase not configured' };
+    }
+
+    try {
+      const supabase = getSupabase();
+      
+      // Prepare the master product data
+      const masterData: any = {
+        gtin: product.barcode || '',
+        brand: product.brand || '',
+        product_name: product.name,
+        variant: product.variant || '',
+        size: product.size || '',
+        subcategory: product.category,
+        suggested_retail_price: product.price,
+        suggested_cost_price: product.cost,
+        min_price: product.minPrice,
+        max_price: product.maxPrice,
+        is_active: true,
+        updated_at: new Date().toISOString()
+      };
+
+      // Check if it already exists by GTIN
+      if (masterData.gtin && masterData.gtin !== '') {
+        const { data: existing } = await supabase
+          .from('master_products')
+          .select('id')
+          .eq('gtin', masterData.gtin)
+          .maybeSingle();
+
+        if (existing) {
+          // Update existing
+          const { data, error } = await supabase
+            .from('master_products')
+            .update(masterData)
+            .eq('id', existing.id)
+            .select()
+            .single();
+
+          if (error) throw error;
+          
+          // Update local cache
+          await db.masterProducts.put(data);
+          return { success: true, masterProduct: data };
+        }
+      }
+
+      // Insert new
+      const { data, error } = await supabase
+        .from('master_products')
+        .insert([{ ...masterData, created_at: new Date().toISOString() }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Update local cache
+      await db.masterProducts.put(data);
+      
+      // Also update the local product to link it
+      if (product.id) {
+        await db.products.update(product.id, { masterProductId: data.id });
+      }
+
+      return { success: true, masterProduct: data };
+    } catch (error: any) {
+      console.error('Failed to sync product to master database:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Download the entire master database for offline use
   async downloadMasterDatabase(): Promise<{ success: boolean; count: number; error?: string }> {
     if (this.isDownloading) {

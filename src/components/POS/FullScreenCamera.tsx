@@ -461,6 +461,7 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
             >
               <Barcode size={24} />
             </button>
+
           </div>
           
           {/* Bottom Controls */}

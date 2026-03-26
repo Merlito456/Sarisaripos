@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Package, Tag, DollarSign, Layers, AlertCircle, Crown, Search, Plus } from 'lucide-react';
+import { X, Save, Package, Tag, DollarSign, Layers, AlertCircle, Crown, Search, Plus, Cloud } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { type Product } from '../../database/db';
 import { dataService } from '../../services/DataService';
+import { masterProductService } from '../../services/MasterProductService';
 import toast from 'react-hot-toast';
 import { premiumService } from '../../services/PremiumService';
 import { useNavigate } from 'react-router-dom';
@@ -12,13 +13,15 @@ interface ProductModalProps {
   onClose: () => void;
   onSave: () => void;
   product?: Product | null;
+  initialSearchQuery?: string;
 }
 
 export const ProductModal: React.FC<ProductModalProps> = ({
   isOpen,
   onClose,
   onSave,
-  product
+  product,
+  initialSearchQuery = ''
 }) => {
   const navigate = useNavigate();
   const [masterQuery, setMasterQuery] = useState('');
@@ -48,9 +51,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         barcodes: []
       });
     }
-    setMasterQuery('');
-    setMasterResults([]);
-  }, [product, isOpen]);
+    setMasterQuery(initialSearchQuery);
+    if (initialSearchQuery) {
+      handleMasterSearch(initialSearchQuery);
+    } else {
+      setMasterResults([]);
+    }
+  }, [product, isOpen, initialSearchQuery]);
 
   const handleMasterSearch = async (query: string) => {
     setMasterQuery(query);
@@ -297,21 +304,48 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             </div>
           </div>
 
-          <div className="pt-4 flex space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-4 bg-stone-100 text-stone-600 rounded-2xl font-black uppercase tracking-widest hover:bg-stone-200 active:bg-stone-200 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all flex items-center justify-center space-x-2"
-            >
-              <Save size={20} />
-              <span>{product ? 'Update' : 'Save Product'}</span>
-            </button>
+          <div className="pt-4 flex flex-col space-y-3">
+            <div className="flex space-x-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-4 bg-stone-100 text-stone-600 rounded-2xl font-black uppercase tracking-widest hover:bg-stone-200 active:bg-stone-200 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all flex items-center justify-center space-x-2"
+              >
+                <Save size={20} />
+                <span>{product ? 'Update' : 'Save Product'}</span>
+              </button>
+            </div>
+            
+            {product && !product.masterProductId && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const loadingToast = toast.loading(`Syncing ${product.name} to master database...`);
+                  try {
+                    const result = await masterProductService.syncToMaster(product);
+                    if (result.success) {
+                      toast.success(`${product.name} synced to master database!`, { id: loadingToast });
+                      onSave();
+                      onClose();
+                    } else {
+                      toast.error(`Sync failed: ${result.error}`, { id: loadingToast });
+                    }
+                  } catch (error) {
+                    toast.error('Sync failed', { id: loadingToast });
+                  }
+                }}
+                className="w-full py-4 bg-amber-50 text-amber-600 border-2 border-amber-100 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-amber-100 active:bg-amber-100 transition-all flex items-center justify-center space-x-2"
+              >
+                <Cloud size={18} />
+                <span>Sync to Master Database</span>
+              </button>
+            )}
           </div>
         </form>
       </div>
