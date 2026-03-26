@@ -46,6 +46,9 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
   const [manualBarcode, setManualBarcode] = useState('');
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [quickAddBarcode, setQuickAddBarcode] = useState('');
+  const [isNoBarcodeOpen, setIsNoBarcodeOpen] = useState(false);
+  const [noBarcodeName, setNoBarcodeName] = useState('');
+  const [noBarcodePrice, setNoBarcodePrice] = useState('');
   
   // Price prompt state
   const [isPricePromptOpen, setIsPricePromptOpen] = useState(false);
@@ -357,6 +360,39 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
     }
   };
   
+  const handleNoBarcodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!noBarcodeName || !noBarcodePrice) {
+      toast.error('Please enter both name and price');
+      return;
+    }
+
+    const price = parseFloat(noBarcodePrice);
+    if (isNaN(price)) {
+      toast.error('Please enter a valid price');
+      return;
+    }
+
+    // Create a virtual product for the cart
+    const virtualProduct: Product = {
+      id: `nb-${Date.now()}`, // Unique ID for non-barcode items
+      name: noBarcodeName,
+      price: price,
+      cost: 0,
+      stock: 999999, // High stock for generic items
+      minStock: 0,
+      category: 'General',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    onProductDetected(virtualProduct);
+    setIsNoBarcodeOpen(false);
+    setNoBarcodeName('');
+    setNoBarcodePrice('');
+    onClose();
+  };
+
   const captureAndDetect = async () => {
     if (!videoRef.current || !canvasRef.current || status !== 'ready') return;
     
@@ -703,12 +739,87 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
                 >
                   Find Product
                 </button>
+
+                <div className="relative py-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">OR</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsManualEntryOpen(false);
+                    setIsNoBarcodeOpen(true);
+                  }}
+                  className="w-full py-3 bg-stone-100 text-stone-600 rounded-xl font-bold text-sm hover:bg-stone-200 transition-colors"
+                >
+                  No Barcode? Add Manually
+                </button>
               </form>
             </div>
           </div>
         </div>
       )}
       
+      {/* No Barcode Dialog */}
+      {isNoBarcodeOpen && (
+        <div className="absolute inset-0 z-[60] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900">Add Item (No Barcode)</h3>
+                <button onClick={() => setIsNoBarcodeOpen(false)} className="text-gray-400 hover:text-gray-600">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <form onSubmit={handleNoBarcodeSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Item Name
+                  </label>
+                  <input
+                    type="text"
+                    value={noBarcodeName}
+                    onChange={(e) => setNoBarcodeName(e.target.value)}
+                    placeholder="e.g., Vegetables, Loose Candy"
+                    className="w-full px-4 py-3 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-lg"
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Price (₱)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={noBarcodePrice}
+                    onChange={(e) => setNoBarcodePrice(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-4 py-3 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-lg"
+                    required
+                  />
+                </div>
+                
+                <button
+                  type="submit"
+                  className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Add to Cart
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Detection Overlay for Photo/Text Mode */}
       {(mode === 'photo' || mode === 'text') && isDetecting && (
         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

@@ -22,6 +22,9 @@ export default function CameraPOS() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [userId, setUserId] = useState<string>(user?.id || 'anonymous');
+  const [isNoBarcodeOpen, setIsNoBarcodeOpen] = useState(false);
+  const [noBarcodeName, setNoBarcodeName] = useState('');
+  const [noBarcodePrice, setNoBarcodePrice] = useState('');
   
   const { 
     cart, 
@@ -53,6 +56,37 @@ export default function CameraPOS() {
   const openCamera = (mode: 'barcode' | 'photo' | 'text' | 'auto') => {
     setCameraMode(mode);
     setIsCameraActive(true);
+  };
+
+  const handleNoBarcodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!noBarcodeName || !noBarcodePrice) {
+      toast.error('Please enter both name and price');
+      return;
+    }
+
+    const price = parseFloat(noBarcodePrice);
+    if (isNaN(price)) {
+      toast.error('Please enter a valid price');
+      return;
+    }
+
+    const virtualProduct: Product = {
+      id: `nb-${Date.now()}`,
+      name: noBarcodeName,
+      price: price,
+      cost: 0,
+      stock: 999999,
+      minStock: 0,
+      category: 'General',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    addToCart(virtualProduct);
+    setIsNoBarcodeOpen(false);
+    setNoBarcodeName('');
+    setNoBarcodePrice('');
   };
 
   return (
@@ -98,7 +132,7 @@ export default function CameraPOS() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => {
               setCameraMode('barcode');
@@ -108,7 +142,15 @@ export default function CameraPOS() {
             className="bg-stone-800 rounded-2xl p-4 text-white flex items-center justify-center space-x-3 hover:bg-stone-900 transition-colors shadow-lg"
           >
             <Barcode size={20} />
-            <span className="font-black text-sm uppercase tracking-widest">Manual Barcode Entry</span>
+            <span className="font-black text-[10px] uppercase tracking-widest">Manual Barcode</span>
+          </button>
+
+          <button
+            onClick={() => setIsNoBarcodeOpen(true)}
+            className="bg-stone-100 rounded-2xl p-4 text-stone-600 flex items-center justify-center space-x-3 hover:bg-stone-200 transition-colors border border-stone-200"
+          >
+            <Plus size={20} />
+            <span className="font-black text-[10px] uppercase tracking-widest">No Barcode?</span>
           </button>
         </div>
 
@@ -329,6 +371,68 @@ export default function CameraPOS() {
         </div>
       </div>
       
+      {/* No Barcode Modal */}
+      {isNoBarcodeOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl"
+          >
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h3 className="text-2xl font-black text-stone-900 uppercase tracking-tight">Quick Add</h3>
+                  <p className="text-stone-400 text-xs font-bold uppercase tracking-widest">Item without barcode</p>
+                </div>
+                <button onClick={() => setIsNoBarcodeOpen(false)} className="p-2 hover:bg-stone-100 rounded-full text-stone-400 transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <form onSubmit={handleNoBarcodeSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">
+                    Item Name
+                  </label>
+                  <input
+                    type="text"
+                    value={noBarcodeName}
+                    onChange={(e) => setNoBarcodeName(e.target.value)}
+                    placeholder="e.g., Vegetables, Loose Candy"
+                    className="w-full px-6 py-4 bg-stone-50 border-2 border-stone-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-lg font-bold text-stone-800 placeholder:text-stone-300 transition-all"
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">
+                    Price (₱)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={noBarcodePrice}
+                    onChange={(e) => setNoBarcodePrice(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-6 py-4 bg-stone-50 border-2 border-stone-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-2xl font-black text-indigo-600 placeholder:text-stone-300 transition-all"
+                    required
+                  />
+                </div>
+                
+                <button
+                  type="submit"
+                  className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-[0.98]"
+                >
+                  ADD TO ORDER
+                </button>
+              </form>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Full Screen Camera Modal */}
       <FullScreenCamera
         isOpen={isCameraActive}
