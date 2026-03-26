@@ -270,9 +270,13 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
 
     // If it's a virtual product but no units (direct master product match)
     if (!product.id && masterProduct) {
+      const brandPrefix = masterProduct.brand ? `${masterProduct.brand} ` : '';
+      const variantSuffix = masterProduct.variant ? ` - ${masterProduct.variant}` : '';
+      const sizeSuffix = masterProduct.size ? ` (${masterProduct.size})` : '';
+      
       setPendingProductData({
         masterProductId: masterProduct.id,
-        name: masterProduct.product_name,
+        name: `${brandPrefix}${masterProduct.product_name}${variantSuffix}${sizeSuffix}`.trim(),
         defaultPrice: masterProduct.suggested_retail_price || 0
       });
       setCustomPrice((masterProduct.suggested_retail_price || 0).toString());
@@ -308,10 +312,14 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
   const handleUnitSelect = (unit: ProductUnit) => {
     if (!selectedMasterProduct) return;
 
+    const brandPrefix = selectedMasterProduct.brand ? `${selectedMasterProduct.brand} ` : '';
+    const variantSuffix = selectedMasterProduct.variant ? ` - ${selectedMasterProduct.variant}` : '';
+    const sizeSuffix = selectedMasterProduct.size ? ` (${selectedMasterProduct.size})` : '';
+
     setPendingProductData({
       masterProductId: selectedMasterProduct.id,
       unitId: unit.id,
-      name: `${selectedMasterProduct.product_name} (${unit.unitName})`,
+      name: `${brandPrefix}${selectedMasterProduct.product_name}${variantSuffix}${sizeSuffix} (${unit.unitName})`.trim(),
       defaultPrice: unit.sellingPrice || selectedMasterProduct.suggested_retail_price || 0
     });
     setCustomPrice((unit.sellingPrice || selectedMasterProduct.suggested_retail_price || 0).toString());

@@ -353,15 +353,19 @@ export class MasterProductService {
     }
 
     const unitSuffix = unit ? ` (${unit.unitName})` : '';
+    const brandPrefix = masterProduct.brand ? `${masterProduct.brand} ` : '';
+    const variantSuffix = masterProduct.variant ? ` - ${masterProduct.variant}` : '';
+    const sizeSuffix = masterProduct.size ? ` (${masterProduct.size})` : '';
+
     const newProduct = {
-      name: masterProduct.product_name + (masterProduct.variant ? ` - ${masterProduct.variant}` : '') + (masterProduct.size ? ` (${masterProduct.size})` : '') + unitSuffix,
+      name: `${brandPrefix}${masterProduct.product_name}${variantSuffix}${sizeSuffix}${unitSuffix}`.trim(),
       barcode: unit?.barcode || masterProduct.gtin,
       barcodes: [unit?.barcode || masterProduct.gtin],
       category: masterProduct.subcategory || 'General',
       price: price || unit?.sellingPrice || masterProduct.suggested_retail_price || 0,
       cost: unit?.costPrice || masterProduct.suggested_cost_price || 0,
-      minPrice: masterProduct.min_price,
-      maxPrice: masterProduct.max_price,
+      minPrice: masterProduct.min_price || undefined,
+      maxPrice: masterProduct.max_price || undefined,
       stock: 0,
       minStock: 5,
       unitId: unit?.id,
