@@ -8,6 +8,7 @@ export const PREMIUM_PLANS: Record<PlanType, PremiumPlan> = {
     priceYearly: 0,
     features: {
       cloudSync: true,
+      cloudRestore: false,
       barcodeScanning: false,
       maxProducts: 100,
       maxCustomers: 50,
@@ -29,6 +30,7 @@ export const PREMIUM_PLANS: Record<PlanType, PremiumPlan> = {
     priceYearly: 1490,
     features: {
       cloudSync: true,
+      cloudRestore: true,
       barcodeScanning: true,
       maxProducts: 1000,
       maxCustomers: 500,
@@ -50,6 +52,7 @@ export const PREMIUM_PLANS: Record<PlanType, PremiumPlan> = {
     priceYearly: 2990,
     features: {
       cloudSync: true,
+      cloudRestore: true,
       barcodeScanning: true,
       maxProducts: 5000,
       maxCustomers: 2000,
@@ -71,6 +74,7 @@ export const PREMIUM_PLANS: Record<PlanType, PremiumPlan> = {
     priceYearly: 4990,
     features: {
       cloudSync: true,
+      cloudRestore: true,
       barcodeScanning: true,
       maxProducts: Infinity,
       maxCustomers: Infinity,

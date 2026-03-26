@@ -122,7 +122,7 @@ export class SupabaseSyncService {
       }
 
       // Sync Transactions
-      const transactions = await db.transactions.where('synced').equals(0).toArray();
+      const transactions = await db.transactions.where('synced').equals(false as any).toArray();
       
       for (const transaction of transactions) {
         const { error } = await supabase
@@ -202,6 +202,11 @@ export class SupabaseSyncService {
   
   // Pull updates from cloud
   async pullFromCloud(): Promise<SyncResult> {
+    return this.restoreFromCloud(true);
+  }
+
+  // Restore all data from cloud
+  async restoreFromCloud(onlyUpdates: boolean = false): Promise<SyncResult> {
     if (!this.isConfigured()) {
       return {
         success: false,
@@ -225,14 +230,20 @@ export class SupabaseSyncService {
     
     try {
       const supabase = getSupabase();
-      const lastSync = await this.getLastSyncTime();
-      const lastSyncStr = lastSync?.toISOString() || '2000-01-01';
+      let lastSyncStr = '2000-01-01';
       
-      // Pull products updated after last sync
-      const { data: cloudProducts, error: productsError } = await supabase
-        .from('products')
-        .select('*')
-        .gt('updated_at', lastSyncStr);
+      if (onlyUpdates) {
+        const lastSync = await this.getLastSyncTime();
+        lastSyncStr = lastSync?.toISOString() || '2000-01-01';
+      }
+      
+      // Pull products
+      let productsQuery = supabase.from('products').select('*');
+      if (onlyUpdates) {
+        productsQuery = productsQuery.gt('updated_at', lastSyncStr);
+      }
+      
+      const { data: cloudProducts, error: productsError } = await productsQuery;
       
       if (!productsError && cloudProducts) {
         for (const cloudProduct of cloudProducts) {
@@ -258,11 +269,13 @@ export class SupabaseSyncService {
         }
       }
 
-      // Pull customers updated after last sync
-      const { data: cloudCustomers, error: customersError } = await supabase
-        .from('customers')
-        .select('*')
-        .gt('updated_at', lastSyncStr);
+      // Pull customers
+      let customersQuery = supabase.from('customers').select('*');
+      if (onlyUpdates) {
+        customersQuery = customersQuery.gt('updated_at', lastSyncStr);
+      }
+
+      const { data: cloudCustomers, error: customersError } = await customersQuery;
 
       if (!customersError && cloudCustomers) {
         for (const cloudCustomer of cloudCustomers) {
@@ -284,11 +297,13 @@ export class SupabaseSyncService {
         }
       }
 
-      // Pull transactions updated after last sync
-      const { data: cloudTransactions, error: transactionsError } = await supabase
-        .from('transactions')
-        .select('*')
-        .gt('timestamp', lastSyncStr);
+      // Pull transactions
+      let transactionsQuery = supabase.from('transactions').select('*');
+      if (onlyUpdates) {
+        transactionsQuery = transactionsQuery.gt('timestamp', lastSyncStr);
+      }
+
+      const { data: cloudTransactions, error: transactionsError } = await transactionsQuery;
 
       if (!transactionsError && cloudTransactions) {
         for (const cloudTransaction of cloudTransactions) {
@@ -315,13 +330,16 @@ export class SupabaseSyncService {
       await this.updateLastSyncTime();
       
       if (result.productsSynced > 0 || result.transactionsSynced > 0 || result.customersSynced > 0) {
-        toast.success(`Pulled ${result.productsSynced} products, ${result.transactionsSynced} transactions, ${result.customersSynced} customers from cloud`);
+        const action = onlyUpdates ? 'Pulled' : 'Restored';
+        toast.success(`${action} ${result.productsSynced} products, ${result.transactionsSynced} transactions, ${result.customersSynced} customers from cloud`);
+      } else {
+        toast.success('Everything is up to date');
       }
       
     } catch (error: any) {
       result.success = false;
       result.errors.push(error.message);
-      toast.error('Pull failed: ' + error.message);
+      toast.error('Operation failed: ' + error.message);
     } finally {
       this.isSyncing = false;
     }

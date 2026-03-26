@@ -142,6 +142,11 @@ class PremiumService {
     return transactionsToday < status.limits.transactionsPerDay;
   }
 
+  async canRestoreCloudBackup(): Promise<boolean> {
+    const status = await this.getPremiumStatus();
+    return status.features.cloudRestore;
+  }
+
   async isUserPremium(userId?: string): Promise<boolean> {
     const status = await this.getPremiumStatus(userId);
     return status.isPremium;

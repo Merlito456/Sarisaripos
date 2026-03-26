@@ -47,6 +47,16 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [quickAddBarcode, setQuickAddBarcode] = useState('');
   
+  // Price prompt state
+  const [isPricePromptOpen, setIsPricePromptOpen] = useState(false);
+  const [pendingProductData, setPendingProductData] = useState<{
+    masterProductId: string;
+    unitId?: string;
+    defaultPrice: number;
+    name: string;
+  } | null>(null);
+  const [customPrice, setCustomPrice] = useState<string>('');
+  
   // Initialize camera when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -258,6 +268,18 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
       return;
     }
 
+    // If it's a virtual product but no units (direct master product match)
+    if (!product.id && masterProduct) {
+      setPendingProductData({
+        masterProductId: masterProduct.id,
+        name: masterProduct.product_name,
+        defaultPrice: masterProduct.suggested_retail_price || 0
+      });
+      setCustomPrice((masterProduct.suggested_retail_price || 0).toString());
+      setIsPricePromptOpen(true);
+      return;
+    }
+
     // Normal detection (already in inventory)
     processDetectedProduct(product);
   };
@@ -283,24 +305,46 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
     }, 500);
   };
 
-  const handleUnitSelect = async (unit: ProductUnit) => {
+  const handleUnitSelect = (unit: ProductUnit) => {
     if (!selectedMasterProduct) return;
+
+    setPendingProductData({
+      masterProductId: selectedMasterProduct.id,
+      unitId: unit.id,
+      name: `${selectedMasterProduct.product_name} (${unit.unitName})`,
+      defaultPrice: unit.sellingPrice || selectedMasterProduct.suggested_retail_price || 0
+    });
+    setCustomPrice((unit.sellingPrice || selectedMasterProduct.suggested_retail_price || 0).toString());
+    setIsUnitSelectorOpen(false);
+    setIsPricePromptOpen(true);
+  };
+
+  const handlePriceSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!pendingProductData) return;
+    
+    const price = parseFloat(customPrice);
+    if (isNaN(price)) {
+      toast.error('Please enter a valid price');
+      return;
+    }
 
     try {
       // Add to inventory
       const newProduct = await masterProductService.addToInventory(
-        selectedMasterProduct.id,
+        pendingProductData.masterProductId,
         userId,
-        unit.id,
-        unit.sellingPrice
+        pendingProductData.unitId,
+        price
       );
 
       if (newProduct) {
-        setIsUnitSelectorOpen(false);
+        setIsPricePromptOpen(false);
+        setPendingProductData(null);
         processDetectedProduct(newProduct);
       }
     } catch (error) {
-      console.error('Failed to add unit to inventory:', error);
+      console.error('Failed to add product to inventory:', error);
       toast.error('Failed to add product to inventory');
     }
   };
@@ -681,6 +725,61 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
             setSelectedMasterProduct(null);
           }}
         />
+      )}
+
+      {/* Price Prompt Dialog */}
+      {isPricePromptOpen && pendingProductData && (
+        <div className="absolute inset-0 z-[70] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900">Set Your Price</h3>
+                <button 
+                  onClick={() => {
+                    setIsPricePromptOpen(false);
+                    setPendingProductData(null);
+                  }} 
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="mb-6">
+                <p className="text-sm text-gray-500 mb-1">Product</p>
+                <p className="text-lg font-bold text-gray-900">{pendingProductData.name}</p>
+              </div>
+
+              <form onSubmit={handlePriceSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Selling Price (₱)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={customPrice}
+                    onChange={(e) => setCustomPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-4 py-3 bg-gray-100 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-2xl font-bold"
+                    autoFocus
+                    onFocus={(e) => e.target.select()}
+                  />
+                  <p className="text-xs text-gray-400 mt-2">
+                    Suggested: ₱{pendingProductData.defaultPrice.toFixed(2)}
+                  </p>
+                </div>
+                
+                <button
+                  type="submit"
+                  className="w-full py-4 bg-blue-500 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-blue-600 transition-colors"
+                >
+                  Confirm & Add
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

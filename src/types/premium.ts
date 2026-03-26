@@ -7,6 +7,7 @@ export interface PremiumPlan {
   priceYearly: number;
   features: {
     cloudSync: boolean;
+    cloudRestore: boolean;
     barcodeScanning: boolean;
     maxProducts: number;
     maxCustomers: number;

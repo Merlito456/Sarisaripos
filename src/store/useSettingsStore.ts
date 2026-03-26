@@ -20,6 +20,7 @@ interface SettingsState {
   importSettings: (json: string) => boolean;
   testSupabaseConnection: (url: string, anonKey: string) => Promise<boolean>;
   syncNow: () => Promise<void>;
+  restoreFromCloud: () => Promise<void>;
   clearLocalData: () => Promise<void>;
 }
 
@@ -189,6 +190,39 @@ export const useSettingsStore = create<SettingsState>()(
               error: error.message
             }
           }));
+        }
+      },
+      
+      restoreFromCloud: async () => {
+        set((state) => ({
+          syncStatus: { ...state.syncStatus, isSyncing: true, error: null }
+        }));
+        
+        try {
+          const result = await supabaseSync.restoreFromCloud(false); // false means pull everything
+          
+          set((state) => ({
+            syncStatus: {
+              ...state.syncStatus,
+              isSyncing: false,
+              lastSync: result.timestamp,
+              pendingSync: 0,
+              error: result.errors.length > 0 ? result.errors[0] : null
+            }
+          }));
+          
+          if (result.success) {
+            toast.success(`Restored ${result.productsSynced} items from cloud`);
+          }
+        } catch (error: any) {
+          set((state) => ({
+            syncStatus: {
+              ...state.syncStatus,
+              isSyncing: false,
+              error: error.message
+            }
+          }));
+          toast.error('Restore failed: ' + error.message);
         }
       },
       

@@ -20,7 +20,7 @@ type TabType = 'store' | 'receipt' | 'inventory' | 'pos' | 'preferences' | 'back
 import { masterProductService } from '../services/MasterProductService';
 
 export const Settings: React.FC = () => {
-  const { settings, updateSettings, syncStatus, syncNow, exportSettings, importSettings, testSupabaseConnection } = useSettingsStore();
+  const { settings, updateSettings, syncStatus, syncNow, restoreFromCloud, exportSettings, importSettings, testSupabaseConnection } = useSettingsStore();
   const [activeTab, setActiveTab] = useState<TabType>('store');
   const [showPin, setShowPin] = useState(false);
   const [supabaseUrl, setSupabaseUrl] = useState(settings.backup.supabaseConfig?.url || '');
@@ -390,6 +390,25 @@ export const Settings: React.FC = () => {
                     >
                       {syncStatus.isSyncing ? <RefreshCw size={18} className="animate-spin" /> : <Cloud size={18} />}
                       <span>{syncStatus.isSyncing ? 'Syncing...' : 'Sync Now'}</span>
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        const canRestore = await premiumService.canRestoreCloudBackup();
+                        if (!canRestore) {
+                          toast.error('Cloud Restore is a Premium feature. Please upgrade to use it.');
+                          return;
+                        }
+                        
+                        if (window.confirm('Are you sure you want to restore from cloud? This will overwrite local data with cloud data.')) {
+                          restoreFromCloud();
+                        }
+                      }}
+                      disabled={!settings.backup.supabaseConfig?.url || syncStatus.isSyncing}
+                      className="px-6 py-4 bg-stone-100 text-stone-900 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-stone-200 disabled:opacity-50 flex items-center space-x-2 shadow-lg shadow-stone-100 border border-stone-200"
+                    >
+                      <Download size={18} />
+                      <span>Cloud Restore</span>
                     </button>
                     
                     <button
