@@ -384,13 +384,25 @@ export class MasterProductService {
     try {
       const supabase = getSupabase();
       
+      // Try to find matching category ID
+      let categoryId = null;
+      if (product.category) {
+        const { data: catData } = await supabase
+          .from('product_categories')
+          .select('id')
+          .ilike('name', product.category)
+          .maybeSingle();
+        if (catData) categoryId = catData.id;
+      }
+
       // Prepare the master product data
       const masterData: any = {
         gtin: product.barcode || '',
-        brand: product.brand || '',
+        brand: product.brand || null,
         product_name: product.name,
-        variant: product.variant || '',
-        size: product.size || '',
+        variant: product.variant || null,
+        size: product.size || null,
+        category_id: categoryId,
         subcategory: product.category,
         suggested_retail_price: product.price,
         suggested_cost_price: product.cost,

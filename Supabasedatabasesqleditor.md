@@ -290,9 +290,20 @@ CREATE POLICY "Users can manage own daily_stats" ON daily_transactions FOR ALL U
 
 -- Public read for master tables
 CREATE POLICY "Authenticated users can read master_products" ON master_products FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can insert master_products" ON master_products FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can update master_products" ON master_products FOR UPDATE USING (auth.role() = 'authenticated');
+
 CREATE POLICY "Authenticated users can read product_categories" ON product_categories FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can insert product_categories" ON product_categories FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
 CREATE POLICY "Authenticated users can read barcode_index" ON barcode_index FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can insert barcode_index" ON barcode_index FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
 CREATE POLICY "Authenticated users can read product_units" ON product_units FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can insert product_units" ON product_units FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can update product_units" ON product_units FOR UPDATE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Users can manage own contributions" ON user_contributions FOR ALL USING (auth.uid() = user_id);
 
 -- Transaction items policy (linked to transaction owner)
 CREATE POLICY "Users can manage own transaction items" ON transaction_items FOR ALL USING (

@@ -29,6 +29,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const [isSearchingMaster, setIsSearchingMaster] = useState(false);
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
+    brand: '',
+    variant: '',
+    size: '',
     category: 'General',
     price: 0,
     cost: 0,
@@ -43,6 +46,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     } else {
       setFormData({
         name: '',
+        brand: '',
+        variant: '',
+        size: '',
         category: 'General',
         price: 0,
         cost: 0,
@@ -78,11 +84,15 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const selectMasterProduct = (p: any) => {
     setFormData({
       ...formData,
-      name: p.name,
-      barcode: p.barcode,
-      barcodes: [p.barcode],
-      category: p.category || 'General',
-      price: p.suggested_price || 0
+      name: p.name || p.product_name,
+      brand: p.brand || '',
+      variant: p.variant || '',
+      size: p.size || '',
+      barcode: p.barcode || p.gtin,
+      barcodes: [p.barcode || p.gtin],
+      category: p.category || p.subcategory || 'General',
+      price: p.suggested_price || p.suggested_retail_price || 0,
+      cost: p.suggested_cost_price || 0
     });
     setMasterResults([]);
     setMasterQuery('');
@@ -205,7 +215,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 type="text"
                 required
                 className="w-full pl-12 pr-4 py-3 bg-stone-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-500 font-bold"
-                placeholder="e.g. Lucky Me Pancit Canton"
+                placeholder="e.g. Pancit Canton"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
               />
@@ -213,6 +223,39 @@ export const ProductModal: React.FC<ProductModalProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-black text-stone-400 uppercase tracking-widest ml-1">Brand</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 bg-stone-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                placeholder="e.g. Lucky Me"
+                value={formData.brand || ''}
+                onChange={e => setFormData({ ...formData, brand: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-black text-stone-400 uppercase tracking-widest ml-1">Variant</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 bg-stone-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                placeholder="e.g. Chilimansi"
+                value={formData.variant || ''}
+                onChange={e => setFormData({ ...formData, variant: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-black text-stone-400 uppercase tracking-widest ml-1">Size/Weight</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 bg-stone-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                placeholder="e.g. 80g"
+                value={formData.size || ''}
+                onChange={e => setFormData({ ...formData, size: e.target.value })}
+              />
+            </div>
             <div className="space-y-1">
               <label className="text-xs font-black text-stone-400 uppercase tracking-widest ml-1">Category</label>
               <div className="relative">
@@ -232,16 +275,17 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 </select>
               </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-black text-stone-400 uppercase tracking-widest ml-1">Barcode (Optional)</label>
-              <input
-                type="text"
-                className="w-full px-4 py-3 bg-stone-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-500 font-bold"
-                placeholder="Scan or type..."
-                value={formData.barcode || ''}
-                onChange={e => setFormData({ ...formData, barcode: e.target.value, barcodes: [e.target.value] })}
-              />
-            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-black text-stone-400 uppercase tracking-widest ml-1">Barcode (Optional)</label>
+            <input
+              type="text"
+              className="w-full px-4 py-3 bg-stone-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-500 font-bold"
+              placeholder="Scan or type..."
+              value={formData.barcode || ''}
+              onChange={e => setFormData({ ...formData, barcode: e.target.value, barcodes: [e.target.value] })}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
