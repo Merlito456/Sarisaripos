@@ -108,24 +108,62 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
         }
       });
 
-      detectionManager.onError((error) => {
+      detectionManager.onError(async (error) => {
         if (error.message.includes('Product not registered')) {
-          const barcode = error.message.split(': ')[1];
-          setQuickAddBarcode(barcode || '');
+          const barcode = error.message.split(': ')[1] || '';
+          setQuickAddBarcode(barcode);
           setIsQuickAddOpen(true);
           
-          toast.error(error.message, {
-            id: 'barcode-error',
-            duration: 4000,
-            position: 'top-center',
-            style: {
-              background: '#1f2937',
-              color: '#fff',
-              border: '1px solid #374151',
-              padding: '16px',
-              borderRadius: '12px'
+          try {
+            const alignment = await masterProductService.getDatabaseAlignment();
+            
+            if (!alignment.isAligned) {
+              toast.error(
+                `Item not found. Your local database is outdated (${alignment.localCount} vs ${alignment.remoteCount} items). Please download the latest database in Settings.`,
+                {
+                  id: 'barcode-error',
+                  duration: 6000,
+                  position: 'top-center',
+                  style: {
+                    background: '#1f2937',
+                    color: '#fff',
+                    border: '1px solid #374151',
+                    padding: '16px',
+                    borderRadius: '12px'
+                  }
+                }
+              );
+            } else {
+              toast.error(
+                `Item not found in master database. Please consider uploading this item to help others!`,
+                {
+                  id: 'barcode-error',
+                  duration: 6000,
+                  position: 'top-center',
+                  style: {
+                    background: '#1f2937',
+                    color: '#fff',
+                    border: '1px solid #374151',
+                    padding: '16px',
+                    borderRadius: '12px'
+                  }
+                }
+              );
             }
-          });
+          } catch (e) {
+            toast.error(error.message, {
+              id: 'barcode-error',
+              duration: 4000,
+              position: 'top-center',
+              style: {
+                background: '#1f2937',
+                color: '#fff',
+                border: '1px solid #374151',
+                padding: '16px',
+                borderRadius: '12px'
+              }
+            });
+          }
         }
       });
       

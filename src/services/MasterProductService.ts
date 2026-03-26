@@ -559,6 +559,33 @@ export class MasterProductService {
     return await db.masterProducts.count();
   }
 
+  // Check if local master database is aligned with remote
+  async getDatabaseAlignment(): Promise<{ localCount: number; remoteCount: number; isAligned: boolean }> {
+    const localCount = await this.getLocalCount();
+    let remoteCount = 0;
+    
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = getSupabase();
+        const { count, error } = await supabase
+          .from('master_products')
+          .select('*', { count: 'exact', head: true });
+        
+        if (!error && count !== null) {
+          remoteCount = count;
+        }
+      } catch (error) {
+        console.error('Failed to get remote master product count:', error);
+      }
+    }
+    
+    return {
+      localCount,
+      remoteCount,
+      isAligned: remoteCount > 0 ? localCount >= remoteCount : true
+    };
+  }
+
   // Clear local master database
   async clearLocalDatabase(): Promise<void> {
     await db.masterProducts.clear();
