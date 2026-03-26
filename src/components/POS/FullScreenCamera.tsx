@@ -49,6 +49,7 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
   const [isNoBarcodeOpen, setIsNoBarcodeOpen] = useState(false);
   const [noBarcodeName, setNoBarcodeName] = useState('');
   const [noBarcodePrice, setNoBarcodePrice] = useState('');
+  const isInitializingRef = useRef(false);
   
   // Price prompt state
   const [isPricePromptOpen, setIsPricePromptOpen] = useState(false);
@@ -62,11 +63,16 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
   
   // Initialize camera when modal opens
   useEffect(() => {
-    if (isOpen) {
+    const isAnyDialogOpen = isUnitSelectorOpen || isPricePromptOpen || isManualEntryOpen || isQuickAddOpen || isNoBarcodeOpen;
+    
+    // Only initialize camera if no dialog is open AND we're not auto-opening manual entry
+    if (isOpen && !isAnyDialogOpen && !autoOpenManual) {
       initializeCamera();
-      if (autoOpenManual) {
-        setIsManualEntryOpen(true);
-      }
+    }
+    
+    // Handle auto-opening manual entry
+    if (isOpen && autoOpenManual) {
+      setIsManualEntryOpen(true);
     }
     
     return () => {
@@ -75,6 +81,9 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
   }, [isOpen, mode, autoOpenManual]);
   
   const initializeCamera = async () => {
+    if (isInitializingRef.current) return;
+    isInitializingRef.current = true;
+    
     setStatus('loading');
     setErrorMessage('');
     setIsTorchOn(false);
@@ -187,6 +196,8 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
       console.error('Camera initialization failed:', error);
       setStatus('error');
       setErrorMessage(error.message || 'Unable to access camera. Please check permissions.');
+    } finally {
+      isInitializingRef.current = false;
     }
   };
   
@@ -292,6 +303,9 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
   };
 
   const processDetectedProduct = (product: Product) => {
+    // Stop camera immediately to prevent heating and save resources
+    stopCamera();
+    
     setLastDetectedBarcode(product.barcodes?.[0] || product.barcode || '');
     
     // Show success feedback
@@ -372,6 +386,9 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
       toast.error('Please enter a valid price');
       return;
     }
+
+    // Stop camera immediately
+    stopCamera();
 
     // Create a virtual product for the cart
     const virtualProduct: Product = {
@@ -458,6 +475,20 @@ export const FullScreenCamera: React.FC<FullScreenCameraProps> = ({
   
   if (!isOpen) return null;
   
+  // Stop camera when any dialog is open to save battery/heat
+  useEffect(() => {
+    const isAnyDialogOpen = isUnitSelectorOpen || isPricePromptOpen || isManualEntryOpen || isQuickAddOpen || isNoBarcodeOpen;
+    
+    if (isAnyDialogOpen) {
+      stopCamera();
+    } else if (isOpen) {
+      // If no dialog is open and the camera modal itself is open, ensure camera is running
+      if (videoRef.current && !videoRef.current.srcObject) {
+        initializeCamera();
+      }
+    }
+  }, [isUnitSelectorOpen, isPricePromptOpen, isManualEntryOpen, isQuickAddOpen, isNoBarcodeOpen, isOpen]);
+
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
       {/* Camera Preview - Full Screen */}

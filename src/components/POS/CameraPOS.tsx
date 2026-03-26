@@ -434,18 +434,20 @@ export default function CameraPOS() {
       )}
 
       {/* Full Screen Camera Modal */}
-      <FullScreenCamera
-        isOpen={isCameraActive}
-        mode={cameraMode}
-        userId={userId}
-        autoOpenManual={autoOpenManual}
-        onClose={() => {
-          setIsCameraActive(false);
-          setAutoOpenManual(false);
-        }}
-        onProductDetected={(product) => addToCart(product)}
-        onModeChange={setCameraMode}
-      />
+      {isCameraActive && (
+        <FullScreenCamera
+          isOpen={isCameraActive}
+          mode={cameraMode}
+          userId={userId}
+          autoOpenManual={autoOpenManual}
+          onClose={() => {
+            setIsCameraActive(false);
+            setAutoOpenManual(false);
+          }}
+          onProductDetected={(product) => addToCart(product)}
+          onModeChange={setCameraMode}
+        />
+      )}
 
       {currentReceipt && (
         <ReceiptModal
