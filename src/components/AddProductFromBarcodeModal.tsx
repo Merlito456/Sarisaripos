@@ -220,6 +220,9 @@ export const AddProductFromBarcodeModal: React.FC<AddProductFromBarcodeModalProp
       const localProduct: Product = {
         userId: user?.id,
         name: `${formData.brand ? formData.brand + ' ' : ''}${formData.product_name}${formData.variant ? ' ' + formData.variant : ''}`,
+        brand: formData.brand || undefined,
+        variant: formData.variant || undefined,
+        size: formData.size || undefined,
         barcode: barcode,
         barcodes: [barcode],
         category: formData.category,

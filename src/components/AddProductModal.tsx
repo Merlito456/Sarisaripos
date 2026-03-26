@@ -21,6 +21,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: '',
+    brand: '',
+    variant: '',
+    size: '',
     category: 'General',
     barcode: initialBarcode,
     price: 0,
@@ -32,7 +35,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
   const handleMasterSelect = (master: any) => {
     setFormData({
-      name: `${master.brand} ${master.product_name}${master.variant ? ` ${master.variant}` : ''}`,
+      name: master.product_name,
+      brand: master.brand || '',
+      variant: master.variant || '',
+      size: master.size || '',
       category: master.category || 'General',
       barcode: master.gtin || '',
       price: master.suggested_retail_price || 0,
@@ -63,7 +69,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
       const newProduct = {
         userId,
-        name: formData.name,
+        name: `${formData.brand ? formData.brand + ' ' : ''}${formData.name}${formData.variant ? ' ' + formData.variant : ''}`,
+        brand: formData.brand || undefined,
+        variant: formData.variant || undefined,
+        size: formData.size || undefined,
         category: formData.category,
         barcode: formData.barcode || undefined,
         barcodes: formData.barcode ? [formData.barcode] : [],
@@ -110,16 +119,51 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
           <div className="space-y-4">
             {/* Product Name */}
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Product Name *</label>
-              <div className="relative">
-                <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Product Name *</label>
+                <div className="relative">
+                  <Package className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full pl-10 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
+                    placeholder="e.g. Pancit Canton"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Brand</label>
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full pl-10 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
-                  placeholder="e.g. Lucky Me Pancit Canton"
+                  value={formData.brand}
+                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
+                  placeholder="e.g. Lucky Me"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Variant</label>
+                <input
+                  type="text"
+                  value={formData.variant}
+                  onChange={(e) => setFormData({ ...formData, variant: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
+                  placeholder="e.g. Chilimansi"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5">Size/Weight</label>
+                <input
+                  type="text"
+                  value={formData.size}
+                  onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
+                  placeholder="e.g. 80g"
                 />
               </div>
             </div>

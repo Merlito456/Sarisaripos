@@ -400,10 +400,31 @@ export class MasterProductService {
       }
 
       // Prepare the master product data
+      // Try to get a clean product name (without brand/variant/size) if they are provided separately
+      let cleanName = product.name;
+      if (product.brand && cleanName.toLowerCase().startsWith(product.brand.toLowerCase())) {
+        cleanName = cleanName.substring(product.brand.length).trim();
+      }
+      if (product.variant && cleanName.toLowerCase().includes(product.variant.toLowerCase())) {
+        // Use regex for case-insensitive replacement of the variant
+        const variantRegex = new RegExp(product.variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        cleanName = cleanName.replace(variantRegex, '').trim();
+      }
+      if (product.size && cleanName.toLowerCase().includes(product.size.toLowerCase())) {
+        const sizeRegex = new RegExp(product.size.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        cleanName = cleanName.replace(sizeRegex, '').trim();
+      }
+      
+      // Clean up extra separators that might be left over
+      cleanName = cleanName.replace(/^[-!@#$%^&*()_+=[\]{}|;':",./<>? ]+|[-!@#$%^&*()_+=[\]{}|;':",./<>? ]+$/g, '').trim();
+      
+      // If we cleaned it too much, fallback to original name
+      if (!cleanName) cleanName = product.name;
+
       const masterData: any = {
         gtin: product.barcode || '',
         brand: product.brand || null,
-        product_name: product.name,
+        product_name: cleanName,
         variant: product.variant || null,
         size: product.size || null,
         category_id: categoryId,
